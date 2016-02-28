@@ -1,0 +1,7 @@
+syntax: regexp
+packages/*/*/
+VCT.Server/bin/*/*
+VCT.Test/bin/*/*
+syntax: glob
+VCT.Server/obj/*/*
+VCT.Test/obj/*/*
