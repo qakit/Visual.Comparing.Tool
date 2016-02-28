@@ -2,6 +2,8 @@ syntax: regexp
 packages/*/*/
 VCT.Server/bin/*/*
 VCT.Test/bin/*/*
+VCT.Client/bin/*/*
 syntax: glob
 VCT.Server/obj/*/*
 VCT.Test/obj/*/*
+VCT.Client/obj/*/*
