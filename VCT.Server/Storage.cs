@@ -33,6 +33,11 @@ namespace VCT.Server
 			return CreateSubdirectory(TestingFilesDirectory, testName);
 		}
 
+		public DirectoryInfo DiffTestDirectory(string testName)
+		{
+			return CreateSubdirectory(DiffFilesDirectory, testName);
+		}
+
 		private DirectoryInfo CreateSubdirectory(DirectoryInfo parentDirectory, string directoryName)
 		{
 			var subdirectory = new DirectoryInfo(Path.Combine(parentDirectory.FullName, directoryName));
