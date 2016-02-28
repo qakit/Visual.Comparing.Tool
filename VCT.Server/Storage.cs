@@ -9,7 +9,7 @@ namespace VCT.Server
 		public Storage()
 		{
 			//TODO: move it to app.config or evaluate from code
-			_rootDirectory = new DirectoryInfo(@"F:\Projects\VCT.Test\Storage");
+			_rootDirectory = new DirectoryInfo(@"C:\projects\VCT\Storage");
 			CreateFoldersHierarhy();
 		}
 

@@ -1,6 +1,7 @@
-using System.Collections.Generic;
+using System;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
@@ -13,39 +14,41 @@ namespace VCT.Server
 	{
 		[HttpGet]
 		[Route("")]
-		public string Get()
+		public string GetAllTests()
 		{
-			return "Returned ALL TESTS";
+			return "Returned ALL Previously runned tests (list of folders in Testing directory i think (or DIFF)";
 		}
 
+		//Get stable images for specified test
 		[HttpGet]
 		[Route("{testId}/stable")]
 		public HttpResponseMessage GetStable(string testId)
 		{
-			var inputfile = @"F:\Projects\VCT.Test\T.txt";
-			var inputfile2 = @"F:\Projects\VCT.Test\Bender.jpeg";
-			var fileStream = File.Open(inputfile, FileMode.Open);
-			var fileStream2 = File.Open(inputfile2, FileMode.Open);
+			//TODO
+			//1. Get Stable images
+			//2. If there are not images return some response to identify it (in thi case test must fail)
+			var storage = new Storage();
+			var stableFiles = storage.StableTestDirectory(testId).GetFiles();
+			if (!stableFiles.Any()) return new HttpResponseMessage(HttpStatusCode.NoContent);
 
 			var content = new MultipartContent();
+			foreach (FileInfo stableFile in stableFiles)
+			{
+				//possibly bad way and can cause memory problems i think
+				var fs = File.Open(stableFile.FullName, FileMode.Open);
 
+				var fileContent = new StreamContent(fs);
+				fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("image/jpeg");
+				fileContent.Headers.Add("FileName", stableFile.Name);
+				content.Add(fileContent);
 
-			var file1Content = new StreamContent(fileStream);
-			file1Content.Headers.ContentType = MediaTypeHeaderValue.Parse("text/plain");
-			file1Content.Headers.Add("fileName", "T1.txt");
-			content.Add(file1Content);
+			}
 
-			var file2Content = new StreamContent(fileStream2);
-			file2Content.Headers.ContentType = MediaTypeHeaderValue.Parse("image/jpeg");
-			file2Content.Headers.Add("fileName", "Bender1.jpeg");
-			content.Add(file2Content);
-
-
-			var response = new HttpResponseMessage { Content = content };
-
+			var response = new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = content };
 			return response;
 		}
 
+		//Save stable output files to specific folder
 		[HttpPost]
 		[Route("{testId}/stable")]
 		public async Task<IHttpActionResult> PostStable(string testId)
@@ -59,18 +62,9 @@ namespace VCT.Server
 			var multiPartFormDataStreamProvider = new UploadMultipartFormProvider(storage.StableTestDirectory(testId).FullName);
 			await Request.Content.ReadAsMultipartAsync(multiPartFormDataStreamProvider);
 			return Ok(new { Message = "All files have been uploaded successfully" });
-
-
-			//			var multipartFormDataStreamProvider = new UploadMultipartFormProvider(@"F:\Projects\VCT.Test\Output");
-			//			await Request.Content.ReadAsMultipartAsync(multipartFormDataStreamProvider);
-			//			List<string> files = new List<string>();
-			//			foreach (MultipartFileData file in multipartFormDataStreamProvider.FileData)
-			//			{
-			//				files.Add(file.LocalFileName);
-			//			}
-			//			return Ok(new { Message = "Uploaded successfully" });
 		}
 
+		//Save testing output files in case of fails to specific folder
 		[HttpPost]
 		[Route("{testId}/testing")]
 		public async Task<IHttpActionResult> PostTesting(string testId)
