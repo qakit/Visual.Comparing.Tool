@@ -8,29 +8,35 @@ using OpenQA.Selenium.Remote;
 
 namespace VCT.Test
 {
-	public class VCTCore
+	public class ScreenshotMaker
 	{
 		private readonly RemoteWebDriver _driver;
-		private string OutputFolder = @"F:\Projects\VCT.Test\Output";
+		private readonly DirectoryInfo _outputScreenDirectory;
 
-		public VCTCore(RemoteWebDriver driver)
+		public ScreenshotMaker(RemoteWebDriver driver, DirectoryInfo outputScreenDirectory)
 		{
 			_driver = driver;
+			_outputScreenDirectory = outputScreenDirectory;
+		}
+
+		public ScreenshotMaker(RemoteWebDriver driver)
+		{
+			_driver = driver;
+			//TODO do smth with outputscreen directory
 		}
 
 		/// <summary>
 		/// Makes screenshot of specified <see cref="IWebElement"/>
 		/// </summary>
-		public void MakeElementScreenshot(IWebElement element)
+		public void MakeElementScreenshot(IWebElement element, FileInfo outputScreenshotFile)
 		{
 			//Take screenshot as bytearray
 			var screenshotBytes = MakeScreen();
 			var bitmap = new Bitmap(new MemoryStream(screenshotBytes));
-			//Calculate crop area
+			//Calculate & crop area
 			var cropRectangle = new Rectangle(element.Location.X, element.Location.Y, element.Size.Width + 1, element.Size.Height);
 			Bitmap elementScreen = bitmap.Clone(cropRectangle, bitmap.PixelFormat);
-			string outputFile = Path.Combine(OutputFolder, "test.png");
-			elementScreen.Save(outputFile, ImageFormat.Png);
+			elementScreen.Save(outputScreenshotFile.FullName, ImageFormat.Png);
 		}
 
 		/// <summary>
@@ -47,7 +53,7 @@ namespace VCT.Test
 		{
 			var bmp = MakeFullPageScreenshot();
 			//TODO: do I really need to remove prev file?!!
-			if(outputFile.Exists) outputFile.Delete();
+			if (outputFile.Exists) outputFile.Delete();
 
 			bmp.Save(outputFile.FullName, ImageFormat.Png);
 		}
@@ -152,7 +158,5 @@ namespace VCT.Test
 				return Convert.ToDouble(driver.ExecuteScript("return (window.pageYOffset !== undefined) ? window.pageYOffset : (document.documentElement || document.body.parentNode || document.body).scrollTop;"));
 			}
 		}
-
-
 	}
 }

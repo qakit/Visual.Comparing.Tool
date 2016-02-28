@@ -19,152 +19,111 @@ namespace VCT.Server
 			return "Returned ALL Previously runned tests (list of folders in Testing directory i think (or DIFF)";
 		}
 
-		//Get stable images for specified test
 		[HttpGet]
 		[Route("{testId}/stable")]
 		public HttpResponseMessage GetStable(string testId)
 		{
-			//TODO
-			//1. Get Stable images
-			//2. If there are not images return some response to identify it (in thi case test must fail)
 			var storage = new Storage();
-			var stableFiles = storage.StableTestDirectory(testId).GetFiles();
-			if (!stableFiles.Any()) return new HttpResponseMessage(HttpStatusCode.NoContent);
+			return SendFilesToClient(storage.StableTestDirectory(testId));
+		}
+
+		[HttpGet]
+		[Route("{testId}/testing")]
+		public HttpResponseMessage GetTesting(string testId)
+		{
+			var storage = new Storage();
+			return SendFilesToClient(storage.TestingTestDirectory(testId));
+		}
+
+		[HttpGet]
+		[Route("{testId}/diff")]
+		public HttpResponseMessage GetDiff(string testId)
+		{
+			var storage = new Storage();
+			return SendFilesToClient(storage.DiffTestDirectory(testId));
+		}
+
+		[HttpPost]
+		[Route("{testId}/stable")]
+		public Task<IHttpActionResult> PostStable(string testId)
+		{
+			var storage = new Storage();
+			return GetFilesFromClient(storage.StableTestDirectory(testId));
+		}
+
+		[HttpPost]
+		[Route("{testId}/testing")]
+		public Task<IHttpActionResult> PostTesting(string testId)
+		{
+			var storage = new Storage();
+			return GetFilesFromClient(storage.TestingTestDirectory(testId));
+		}
+
+		[HttpPost]
+		[Route("{testId}/diff")]
+		public Task<IHttpActionResult> PostDiff(string testId)
+		{
+			var storage = new Storage();
+			return GetFilesFromClient(storage.DiffTestDirectory(testId));
+		}
+
+		[HttpPost]
+		[Route("suite/start")]
+		public void SuiteStart()
+		{
+			Console.WriteLine("Suite started at {0}", DateTime.Now);
+		}
+
+		[HttpPost]
+		[Route("suite/stop")]
+		public void SuiteStop()
+		{
+			Console.WriteLine("Suite stopped at {0}", DateTime.Now);
+		}
+
+		/// <summary>
+		/// Get files from client and save them to specified directory
+		/// </summary>
+		/// <param name="outputDirectory">Directory to save files from client</param>
+		/// <returns></returns>
+		public async Task<IHttpActionResult> GetFilesFromClient(DirectoryInfo outputDirectory)
+		{
+			if (!Request.Content.IsMimeMultipartContent("form-data"))
+			{
+				return BadRequest("Unsupported media type");
+			}
+
+			var multiPartFormDataStreamProvider = new UploadMultipartFormProvider(outputDirectory.FullName);
+			await Request.Content.ReadAsMultipartAsync(multiPartFormDataStreamProvider);
+			return Ok(new { Message = string.Format("All files have been uploaded successfully to {0} directory", outputDirectory.FullName) });
+		}
+
+		/// <summary>
+		/// Send all files from specified directory to client
+		/// </summary>
+		/// <param name="inputDirectory">Input Directory from which we need send files back</param>
+		/// <returns></returns>
+		public HttpResponseMessage SendFilesToClient(DirectoryInfo inputDirectory)
+		{
+			var inputFiles = inputDirectory.GetFiles();
+			if (!inputFiles.Any()) return new HttpResponseMessage(HttpStatusCode.NoContent);
 
 			var content = new MultipartContent();
-			foreach (FileInfo stableFile in stableFiles)
+			foreach (FileInfo inputFile in inputFiles)
 			{
 				//possibly bad way and can cause memory problems i think
-				var fs = File.Open(stableFile.FullName, FileMode.Open);
+				var fs = File.Open(inputFile.FullName, FileMode.Open);
 
 				var fileContent = new StreamContent(fs);
+				//GET MIME TYPE HERE SOMEHOW
 				fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("image/jpeg");
-				fileContent.Headers.Add("FileName", stableFile.Name);
+				fileContent.Headers.Add("FileName", inputFile.Name);
 				content.Add(fileContent);
 
 			}
 
 			var response = new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = content };
 			return response;
-		}
-
-		//Save stable output files to specific folder
-		[HttpPost]
-		[Route("{testId}/stable")]
-		public async Task<IHttpActionResult> PostStable(string testId)
-		{
-			if (!Request.Content.IsMimeMultipartContent("form-data"))
-			{
-				return BadRequest("Unsupported media type");
-			}
-
-			var storage = new Storage();
-			var multiPartFormDataStreamProvider = new UploadMultipartFormProvider(storage.StableTestDirectory(testId).FullName);
-			await Request.Content.ReadAsMultipartAsync(multiPartFormDataStreamProvider);
-			return Ok(new { Message = "All files have been uploaded successfully" });
-		}
-
-		//Save testing output files in case of fails to specific folder
-		[HttpPost]
-		[Route("{testId}/testing")]
-		public async Task<IHttpActionResult> PostTesting(string testId)
-		{
-			if (!Request.Content.IsMimeMultipartContent("form-data"))
-			{
-				return BadRequest("Unsupported media type");
-			}
-
-			var storage = new Storage();
-			var multiPartFormDataStreamProvider = new UploadMultipartFormProvider(storage.TestingTestDirectory(testId).FullName);
-			await Request.Content.ReadAsMultipartAsync(multiPartFormDataStreamProvider);
-			return Ok(new { Message = "All files have been uploaded successfully" });
-		}
-
-		//Save diff output files in case of fails to specific folder
-		[HttpPost]
-		[Route("{testId}/diff")]
-		public async Task<IHttpActionResult> PostDiff(string testId)
-		{
-			if (!Request.Content.IsMimeMultipartContent("form-data"))
-			{
-				return BadRequest("Unsupported media type");
-			}
-
-			var storage = new Storage();
-			var multiPartFormDataStreamProvider = new UploadMultipartFormProvider(storage.DiffTestDirectory(testId).FullName);
-			await Request.Content.ReadAsMultipartAsync(multiPartFormDataStreamProvider);
-			return Ok(new { Message = "All files have been uploaded successfully" });
-		}
-
-		//STABLE
-		//		[HttpGet]
-		//		[Route("{testId}/stable")]
-		//		public HttpResponseMessage GetStable(string testId)
-		//		{
-		//			var inputfile = @"F:\Projects\VCT.Test\T.txt";
-		//			var stream = File.Open(inputfile, FileMode.Open);
-		//			var response = new HttpResponseMessage
-		//			{
-		//				Content = new StreamContent(stream)
-		//			};
-		//			
-		//			response.Content.Headers.ContentType = new MediaTypeHeaderValue("image/jpg");
-		//			response.Content.Headers.ContentLength = stream.Length;
-		//			return response;
-		//		}
-
-		private string outputFIle = @"F:\Projects\VCT.Test\Output\T2.txt";
-		//		[HttpPost]
-		//		[Route("{testId}/stable")]
-		//		public async void PostStable(string testId)
-		//		{
-		//			var x = 0;
-		//			var httpContent = Request.Content;
-		//			var contentStream = await Request.Content.ReadAsStreamAsync();
-		//			var bytes = ToByteArray(contentStream);
-		////			File.Delete(outputFIle);
-		//			using (FileStream fileStream = File.Create(outputFIle))
-		//			{
-		//				fileStream.Write(bytes, 0, bytes.Length);
-		//			}
-		//		}
-
-
-
-		//		[HttpPost]
-		//		[Route("{testId}/stable")]
-		//		public async Task<IHttpActionResult> PostStable(string testId)
-		//		{
-		//			var stream = await Request.Content.ReadAsStreamAsync();
-		//			var outputFile = Path.Combine(@"F:\Projects\VCT.Test\Output", Request.Headers.GetValues("fileName").First());
-		//
-		//			using (FileStream fS = File.Create(outputFile))
-		//			{
-		//				await stream.CopyToAsync(fS);
-		//			}
-		//			
-		//			return Ok(new { Message = "TADAAAM" });
-		//		}
-
-		[HttpGet]
-		[Route("{testId}/testing")]
-		public string GetTesting(string testId)
-		{
-			return "testing images";
-		}
-
-		[HttpGet]
-		[Route("{testId}/diff")]
-		public string GetDiff(string testId)
-		{
-			return "diff images";
-		}
-
-		[HttpGet]
-		[Route("{testId}/testoutput")]
-		public string GetTestOutput(string testId)
-		{
-			return "Test Output";
 		}
 	}
 

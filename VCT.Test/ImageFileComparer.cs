@@ -9,12 +9,12 @@ namespace VCT.Test
 	{
 		private const int TrustLevel = 7; //means how much pixel we can ignore before failed comparing
 
-		public static bool ComparingFilesAreEqual(string expectedOutputImageFile, string actualOutputImageFile)
+		public static bool ComparingFilesAreEqual(string expectedOutputImageFile, string actualOutputImageFile, DirectoryInfo diffDirectory)
 		{
-			return ComparingFilesAreEqual(new FileInfo(expectedOutputImageFile), new FileInfo(actualOutputImageFile));
+			return ComparingFilesAreEqual(new FileInfo(expectedOutputImageFile), new FileInfo(actualOutputImageFile), diffDirectory);
 		}
 
-		public static bool ComparingFilesAreEqual(FileInfo expectedOutputImageFile, FileInfo actualOutputImageFile)
+		public static bool ComparingFilesAreEqual(FileInfo expectedOutputImageFile, FileInfo actualOutputImageFile, DirectoryInfo diffDirectory)
 		{
 
 			if (expectedOutputImageFile == null || actualOutputImageFile == null)
@@ -43,10 +43,11 @@ namespace VCT.Test
 
 			if (errors > TrustLevel)
 			{
-				DirectoryInfo outputDiffDir = new DirectoryInfo(Path.Combine(actualOutputImageFile.Directory.FullName, "DIFF"));
-				if (!outputDiffDir.Exists) outputDiffDir.Create();
+				if (!diffDirectory.Exists) diffDirectory.Create();
 
-				var outputErrorFile = Path.Combine(outputDiffDir.FullName, actualOutputImageFile.Name + "_comparingResults.png");
+				var outputErrorFile = Path.Combine(
+					diffDirectory.FullName, 
+					Path.GetFileNameWithoutExtension(actualOutputImageFile.Name) + "_comparingResults.png");
 				outputErrorImage.Write(outputErrorFile);
 				return false;
 			}
