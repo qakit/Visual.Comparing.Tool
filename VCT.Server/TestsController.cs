@@ -80,6 +80,22 @@ namespace VCT.Server
 			return Ok(new { Message = "All files have been uploaded successfully" });
 		}
 
+		//Save diff output files in case of fails to specific folder
+		[HttpPost]
+		[Route("{testId}/diff")]
+		public async Task<IHttpActionResult> PostDiff(string testId)
+		{
+			if (!Request.Content.IsMimeMultipartContent("form-data"))
+			{
+				return BadRequest("Unsupported media type");
+			}
+
+			var storage = new Storage();
+			var multiPartFormDataStreamProvider = new UploadMultipartFormProvider(storage.DiffTestDirectory(testId).FullName);
+			await Request.Content.ReadAsMultipartAsync(multiPartFormDataStreamProvider);
+			return Ok(new { Message = "All files have been uploaded successfully" });
+		}
+
 		//STABLE
 		//		[HttpGet]
 		//		[Route("{testId}/stable")]

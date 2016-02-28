@@ -24,7 +24,8 @@ namespace VCT.Test
 			var core = Core.Instance;
 
 			driver.Manage().Window.Maximize();
-			driver.Navigate().GoToUrl("http://www.google.com/");
+			driver.Navigate().GoToUrl("https://vk.com");
+//			driver.Navigate().GoToUrl("http://www.google.com/");
 			core.MakeScreenshot(driver, outputScreen, "FAKETEST");
 			driver.Quit();
 

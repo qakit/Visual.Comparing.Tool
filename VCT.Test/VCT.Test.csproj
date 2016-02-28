@@ -69,6 +69,7 @@
   <ItemGroup>
     <Compile Include="Core.cs" />
     <Compile Include="GoogleTest.cs" />
+    <Compile Include="ImageFileComparer.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="SecondFakeTestFixture.cs" />
     <Compile Include="VCTCore.cs" />

@@ -3,7 +3,6 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using OpenQA.Selenium.Remote;
@@ -14,8 +13,7 @@ namespace VCT.Test
 	{
 		private static readonly Core instance = new Core();
 		private const string BaseAddress = "http://localhost:9111/";
-
-
+		
 		private Core()
 		{
 			//necessary to identify time when all tests are finished;
@@ -26,7 +24,6 @@ namespace VCT.Test
 		{
 			var c = new VCTCore(driver);
 			c.MakeFullScreenshot(outputFile);
-			c.MakeFullScreenshot(new FileInfo(Path.Combine(outputFile.Directory.FullName, outputFile.Name + "_1.png")));
 			var stableOutputDir = new DirectoryInfo(Path.Combine(outputFile.Directory.FullName, "STABLE"));
 
 			var stableFiles = await GetStableFiles(stableOutputDir, testName);
@@ -36,8 +33,31 @@ namespace VCT.Test
 			}
 			else
 			{
+				var equal = CompareScreenshots(outputFile, stableOutputDir);
+				if (!equal)
+				{
+					//POST DIFF HERE;
+					Console.WriteLine("FILE IS DIFFERENT");
+					DirectoryInfo outputDir = new DirectoryInfo(Path.Combine(outputFile.Directory.FullName, "DIFF"));
+					PostDiffFiles(outputDir, testName);
+					//POST TESTING IMAGE
+					PostTestingFiles(outputFile.Directory, testName);
+					Console.WriteLine("Posting images is done");
+				}
+				else
+				{
+					Console.WriteLine("ALL IS FINE");
+					//TODO delete testing images if any and diff images on the server
+				}
 				Console.WriteLine("COMPARE AND PUT DIFF IF NECESSARY TO SERVER");
 			}
+		}
+
+		private bool CompareScreenshots(FileInfo outputTestingFile, DirectoryInfo stableFilesFolder)
+		{
+			var stableImageFile = new FileInfo(Path.Combine(stableFilesFolder.FullName, outputTestingFile.Name));
+
+			return ImageFileComparer.ComparingFilesAreEqual(stableImageFile, outputTestingFile);
 		}
 
 		/// <summary>
@@ -81,6 +101,32 @@ namespace VCT.Test
 		public static void PostTestingFiles(DirectoryInfo inputDirectory, string testName)
 		{
 			string url = string.Format("{0}/tests/{1}/testing", BaseAddress, testName);
+
+			using (var httpClient = new HttpClient())
+			{
+				var stableFiles = inputDirectory.GetFiles();
+				var content = new MultipartFormDataContent();
+
+				foreach (FileInfo stableFile in stableFiles)
+				{
+					var fs = File.Open(stableFile.FullName, FileMode.Open);
+					var fileContent = new StreamContent(fs);
+					content.Add(fileContent, "\"file\"", string.Format("\"{0}\"", stableFile.Name));
+				}
+
+				var result = httpClient.PostAsync(url, content).Result;
+				Console.WriteLine(result);
+			}
+		}
+
+		/// <summary>
+		/// Post all files from specified folder as diff files to file server
+		/// </summary>
+		/// <param name="inputDirectory"></param>
+		/// <param name="testName"></param>
+		public static void PostDiffFiles(DirectoryInfo inputDirectory, string testName)
+		{
+			string url = string.Format("{0}/tests/{1}/diff", BaseAddress, testName);
 
 			using (var httpClient = new HttpClient())
 			{
