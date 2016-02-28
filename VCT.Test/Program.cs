@@ -1,13 +1,11 @@
 ﻿using System;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Text;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
+using OpenQA.Selenium.Chrome;
+using OpenQA.Selenium.Remote;
 
 
 namespace VCT.Test
@@ -18,14 +16,38 @@ namespace VCT.Test
 		static string url = string.Format("{0}/tests/{1}/stable", baseAddress, "BBBD");
 		static FileInfo file = new FileInfo(@"F:\Projects\VCT.Test\T.txt");
 		static FileInfo file2 = new FileInfo(@"F:\Projects\VCT.Test\Bender.jpeg");
+		
 		static void Main(string[] args)
 		{
-			//			HttpUploadFile(url, file.FullName, "file", "text/plain");
-			//UpData();
-			//			UploadData();
-//			GetMultiData();
-			
+			RemoteWebDriver driver = new ChromeDriver();
+			FileInfo outputScreen = new FileInfo(@"C:\projects\VCT\Output\TESTOUTPUT.png");
+			var core = Core.Instance;
+
+			driver.Manage().Window.Maximize();
+			driver.Navigate().GoToUrl("http://www.google.com/");
+			core.MakeScreenshot(driver, outputScreen, "FAKETEST");
+			driver.Quit();
+
 			Console.ReadLine();
+		}
+
+		public async static void DoSimpleTest()
+		{
+			using (var httpClient = new HttpClient())
+			{
+				var result = httpClient.GetAsync(url).Result;
+				if (result.StatusCode == HttpStatusCode.NoContent)
+				{
+					Console.WriteLine("NO CONTENT");
+					return;
+				}
+				var stream = await result.Content.ReadAsStreamAsync();
+				using (var file = File.Open(@"F:\Projects\VCT.Test\Output\TTTT.txt", FileMode.CreateNew))
+				{
+					await stream.CopyToAsync(file);
+				}
+				Console.WriteLine(result);
+			}
 		}
 
 		//stable
@@ -57,10 +79,6 @@ namespace VCT.Test
 						await content.CopyToAsync(fileStream);
 					}
 				}
-//				using (var file = File.Open(@"F:\Projects\VCT.Test\Output\TTTT.txt", FileMode.CreateNew))
-//				{
-//					await stream.CopyToAsync(file);
-//				}
 				Console.WriteLine(result);
 			}
 		}

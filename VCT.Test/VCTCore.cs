@@ -43,10 +43,13 @@ namespace VCT.Test
 			return screenshot;
 		}
 
-		public void MakeFullScreenshot()
+		public void MakeFullScreenshot(FileInfo outputFile)
 		{
 			var bmp = MakeFullPageScreenshot();
-			bmp.Save(Path.Combine(OutputFolder, "fullpage2.png"), ImageFormat.Png);
+			//TODO: do I really need to remove prev file?!!
+			if(outputFile.Exists) outputFile.Delete();
+
+			bmp.Save(outputFile.FullName, ImageFormat.Png);
 		}
 
 		private Bitmap MakeFullPageScreenshot()

@@ -31,7 +31,7 @@ namespace VCT.Test
 			driver.Manage().Window.Maximize();
 			driver.Navigate().GoToUrl("http://www.csszengarden.com/");
 			
-			core.MakeFullScreenshot();
+//			core.MakeFullScreenshot();/**/
 			driver.Quit();
 		}
 	}
