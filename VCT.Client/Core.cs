@@ -89,6 +89,24 @@ namespace VCT.Client
 		}
 
 		/// <summary>
+		/// Inform server that test suite has started
+		/// </summary>
+		public void SuiteStarted()
+		{
+			string url = string.Format("{0}/tests/suite/start", BaseServerAddress);
+			PostMessage(url, "Suite started");
+		}
+
+		/// <summary>
+		/// Inform server that test suite has completed
+		/// </summary>
+		public void SuiteCompleted()
+		{
+			string url = string.Format("{0}/tests/suite/stop", BaseServerAddress);
+			PostMessage(url, "Suite completed");
+		}
+
+		/// <summary>
 		/// Saves files from specified directory to server. Send POST request to specified url with MultipartFormDataContent
 		/// </summary>
 		/// <param name="url">RestAPI url</param>
@@ -142,6 +160,22 @@ namespace VCT.Client
 				}
 				Console.WriteLine(result);
 				return true;
+			}
+		}
+
+		/// <summary>
+		/// Post message to specified url
+		/// </summary>
+		/// <param name="url">Url to send message</param>
+		/// <param name="message">Message</param>
+		private void PostMessage(string url, string message)
+		{
+			Console.WriteLine("Posting message {0}", message);
+			using (var httpClient = new HttpClient())
+			{
+				var content = new StringContent(message);
+				var result = httpClient.PostAsync(url, content).Result;
+				Console.WriteLine(result);
 			}
 		}
 	}

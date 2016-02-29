@@ -71,14 +71,31 @@ namespace VCT.Server
 		[Route("suite/start")]
 		public void SuiteStart()
 		{
-			Console.WriteLine("Suite started at {0}", DateTime.Now);
+			//TODO move all previous content to history folder with datetime name
+			//write started time to txt file
+			var storage = new Storage();
+			Console.WriteLine("Backup previous data");
+			storage.BackUpPreviousRunForHistory();
+			Console.WriteLine("Write new info");
+			try
+			{
+				storage.WriteHistoryInfo(string.Format("started|{0}", DateTime.Now.ToString("dd.mm.yyyy_hh.mm.ss")), true);
+			}
+			catch (Exception e)
+			{
+				Console.WriteLine(e.Message);
+			}
+			Console.WriteLine("Suite started at {0}", DateTime.Now.ToString("dd.mm.yyyy_hh.mm.ss"));
 		}
 
 		[HttpPost]
 		[Route("suite/stop")]
 		public void SuiteStop()
 		{
-			Console.WriteLine("Suite stopped at {0}", DateTime.Now);
+			//TODO write end time to txt file
+			var storage = new Storage();
+			storage.WriteHistoryInfo(string.Format("completed|{0}", DateTime.Now.ToString("dd.mm.yyyy_hh.mm.ss")));
+			Console.WriteLine("Suite stopped at {0}", DateTime.Now.ToString("dd.mm.yyyy_hh.mm.ss"));
 		}
 
 		/// <summary>
