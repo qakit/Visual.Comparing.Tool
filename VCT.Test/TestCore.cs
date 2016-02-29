@@ -12,7 +12,11 @@ namespace VCT.Test
 
 		private TestCore()
 		{
+			Console.WriteLine("Creating instance");
 			//necessary to identify time when all tests are finished;
+			var vctCore = new Core();
+			vctCore.SuiteStarted();
+
 			AppDomain.CurrentDomain.DomainUnload += CurrentDomainOnDomainUnload;
 		}
 
@@ -49,8 +53,10 @@ namespace VCT.Test
 
 		private void CurrentDomainOnDomainUnload(object sender, EventArgs eventArgs)
 		{
+			var vctCore = new Core();
+			vctCore.SuiteCompleted();
+			Console.WriteLine("Suite has been finished");
 			//Pass end time of group test to server
-			MessageBox.Show("All is done");
 		}
 
 		public static TestCore Instance
