@@ -28,17 +28,23 @@ namespace VCT.Test
 			var diffDirectory = new DirectoryInfo(Path.Combine(outputScreenFile.Directory.FullName, "DIFF"));
 
 			var vctCore = new Core();
+			//Save testing files anyway
+			vctCore.SaveTestingFiles(outputScreenFile.Directory, testName);
+
+			//get stable files and
+			//if there are not stable files for test we need generate diff directory and create it on server side with testing files;
 			var success = vctCore.GetStableFiles(stableDirectory, testName);
 			if (!success)
 			{
-				vctCore.SaveTestingFiles(outputScreenFile.Directory, testName);
+				if (!diffDirectory.Exists) diffDirectory.Create();
+
+				vctCore.SaveDiffFiles(diffDirectory, testName);
 				return false;
 			}
 
 			var equal = CompareScreenshots(outputScreenFile, stableDirectory, diffDirectory);
 			if (!equal)
 			{
-				vctCore.SaveTestingFiles(outputScreenFile.Directory, testName);
 				vctCore.SaveDiffFiles(diffDirectory, testName);
 			}
 			return equal;

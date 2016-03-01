@@ -116,7 +116,7 @@ namespace VCT.Client
 			using (var httpClient = new HttpClient())
 			{
 				var inputFiles = inputDirectory.GetFiles();
-				if (!inputFiles.Any()) throw new Exception("No files to upload");
+//				if (!inputFiles.Any()) throw new Exception("No files to upload");
 
 				var content = new MultipartFormDataContent();
 

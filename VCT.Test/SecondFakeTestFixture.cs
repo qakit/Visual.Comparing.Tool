@@ -50,5 +50,19 @@ namespace VCT.Test
 			
 			Assert.IsTrue(equal);
 		}
+
+		[Test]
+		public void YandexTest()
+		{
+			FileInfo outputScreen = new FileInfo(@"C:\projects\VCT\Output\Yandex\yandex.png");
+			if (!outputScreen.Directory.Exists) outputScreen.Directory.Create();
+			var core = TestCore.Instance;
+
+			driver.Manage().Window.Maximize();
+			driver.Navigate().GoToUrl("https://yandex.ru");
+			var equal = core.IsPageScreensAreEqual(driver, outputScreen, TestContext.CurrentContext.Test.FullName);
+
+			Assert.IsTrue(equal);
+		}
 	}
 }
