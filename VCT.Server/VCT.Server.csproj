@@ -79,6 +79,7 @@
     <Compile Include="SimpleLogger.cs" />
     <Compile Include="Startup.cs" />
     <Compile Include="Storage.cs" />
+    <Compile Include="TestResultFiles.cs" />
     <Compile Include="TestsController.cs" />
   </ItemGroup>
   <ItemGroup>

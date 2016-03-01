@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -96,6 +97,66 @@ namespace VCT.Server
 			var storage = new Storage();
 			storage.WriteHistoryInfo(string.Format("completed|{0}", DateTime.Now.ToString("dd.mm.yyyy_hh.mm.ss")));
 			Console.WriteLine("Suite stopped at {0}", DateTime.Now.ToString("dd.mm.yyyy_hh.mm.ss"));
+		}
+
+		[HttpGet]
+		[Route("fails")]
+		public List<TestResultFiles> GetFails()
+		{
+			var storage = new Storage();
+			var testResults = new List<TestResultFiles>();
+			foreach (DirectoryInfo diffDirectory in storage.DiffFilesDirectory.GetDirectories())
+			{
+				var stableFolderPath = (from stable in storage.StableFilesDirectory.GetDirectories()
+										where string.Equals(diffDirectory.Name, stable.Name, StringComparison.InvariantCultureIgnoreCase)
+										where stable != null
+										select stable.FullName).FirstOrDefault();
+				var testingFolderPath = (from testing in storage.TestingFilesDirectory.GetDirectories()
+										 where string.Equals(diffDirectory.Name, testing.Name, StringComparison.InvariantCultureIgnoreCase)
+										 where testing != null
+										 select testing.FullName).FirstOrDefault();
+
+				testResults.Add(new TestResultFiles
+				{
+					DiffFilesDirectory = diffDirectory.FullName,
+					StableFilesDirectory = stableFolderPath,
+					TestingFilesDirectory = testingFolderPath
+				});
+			}
+			return testResults;
+			//			return (from directory in storage.DiffFilesDirectory.GetDirectories() select directory.FullName).ToArray();
+		}
+
+		[HttpGet]
+		[Route("passes")]
+		public string[] GetPassedTests()
+		{
+			var storage = new Storage();
+			//Get failed tests
+			var failedTests = storage.DiffFilesDirectory.GetDirectories();
+			//Get total amout of tests
+			var testingFiles = storage.TestingFilesDirectory.GetDirectories();
+			//find intersect files and return
+			//var passedTests = testingFiles.Except(failedTests);
+			//var passedTests = testingFiles.Select(t => t.Name).Except(failedTests.Select(f => f.Name));
+			var passedTests = testingFiles.Except(failedTests, new DirectoryComparer());
+			return (from passed in passedTests select passed.FullName).ToArray();
+		}
+
+		public class DirectoryComparer : IEqualityComparer<DirectoryInfo>
+		{
+			bool IEqualityComparer<DirectoryInfo>.Equals(DirectoryInfo x, DirectoryInfo y)
+			{
+				return (x.Name.Equals(y.Name));
+			}
+
+			int IEqualityComparer<DirectoryInfo>.GetHashCode(DirectoryInfo obj)
+			{
+				if (Object.ReferenceEquals(obj, null))
+					return 0;
+
+				return obj.Name.GetHashCode();
+			}
 		}
 
 		/// <summary>
