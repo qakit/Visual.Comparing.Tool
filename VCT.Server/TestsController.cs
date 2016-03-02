@@ -7,6 +7,8 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using System.Web.Http;
+using System.Web.Http.Results;
+using Newtonsoft.Json;
 
 namespace VCT.Server
 {
@@ -101,7 +103,7 @@ namespace VCT.Server
 
 		[HttpGet]
 		[Route("fails")]
-		public List<TestResultFiles> GetFails()
+		public JsonResult<List<TestResultFiles>> GetFails()
 		{
 			var storage = new Storage();
 			var testResults = new List<TestResultFiles>();
@@ -110,20 +112,25 @@ namespace VCT.Server
 				var stableFolderPath = (from stable in storage.StableFilesDirectory.GetDirectories()
 										where string.Equals(diffDirectory.Name, stable.Name, StringComparison.InvariantCultureIgnoreCase)
 										where stable != null
-										select stable.FullName).FirstOrDefault();
+										select stable).FirstOrDefault();
+				var stableFilesList = GetResultImages(stableFolderPath).Select(d => d.FullName).ToList();
+
 				var testingFolderPath = (from testing in storage.TestingFilesDirectory.GetDirectories()
 										 where string.Equals(diffDirectory.Name, testing.Name, StringComparison.InvariantCultureIgnoreCase)
 										 where testing != null
-										 select testing.FullName).FirstOrDefault();
+										 select testing).FirstOrDefault();
+				var testingFilesList = GetResultImages(testingFolderPath).Select(d => d.FullName).ToList();
+
+				var diffFilesList = GetResultImages(diffDirectory).Select(d => d.FullName).ToList();
 
 				testResults.Add(new TestResultFiles
 				{
-					DiffFilesDirectory = diffDirectory.FullName,
-					StableFilesDirectory = stableFolderPath,
-					TestingFilesDirectory = testingFolderPath
+					DiffImages = diffFilesList,
+					StableImages = stableFilesList,
+					TestingImages = testingFilesList
 				});
 			}
-			return testResults;
+			return Json(testResults);
 			//			return (from directory in storage.DiffFilesDirectory.GetDirectories() select directory.FullName).ToArray();
 		}
 
@@ -141,6 +148,13 @@ namespace VCT.Server
 			//var passedTests = testingFiles.Select(t => t.Name).Except(failedTests.Select(f => f.Name));
 			var passedTests = testingFiles.Except(failedTests, new DirectoryComparer());
 			return (from passed in passedTests select passed.FullName).ToArray();
+		}
+
+		private List<FileInfo> GetResultImages(DirectoryInfo directoryToSearch)
+		{
+			var imageFiles = directoryToSearch.GetFiles(new[] {"*.png", "*.bmp", "*.jpeg", "*.jpg", "*.gif"},
+				SearchOption.TopDirectoryOnly);
+			return imageFiles.ToList();
 		}
 
 		public class DirectoryComparer : IEqualityComparer<DirectoryInfo>
