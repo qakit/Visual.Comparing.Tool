@@ -1,9 +1,11 @@
-﻿namespace VCT.Server
+﻿using System.Collections.Generic;
+
+namespace VCT.Server
 {
 	public class TestResultFiles
 	{
-		public string DiffFilesDirectory { get; set; }
-		public string TestingFilesDirectory { get; set; }
-		public string StableFilesDirectory { get; set; }
+		public List<string> DiffImages { get; set; }
+		public List<string> TestingImages  { get; set; }
+		public List<string> StableImages  { get; set; }
 	}
 }
