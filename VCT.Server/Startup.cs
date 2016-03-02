@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Web.Http;
+using Microsoft.Owin;
+using Microsoft.Owin.FileSystems;
+using Microsoft.Owin.StaticFiles;
 using Owin;
 
 namespace VCT.Server
@@ -14,17 +17,24 @@ namespace VCT.Server
 			var config = new HttpConfiguration();
 
 			config.MapHttpAttributeRoutes();
-
+			
 			var options = new SimpleLoggerOptions
 			{
 				Log = (key, value) => Console.WriteLine("{0}:{1}", key, value),
 				RequestKeys = new[] { "owin.RequestPath", "owin.RequestMethod" },
 				ResponseKeys = new[] { "owin.ResponseStatusCode", "owin.ResponseBody" }
 			};
+			var fsOptions = new FileServerOptions
+			{
+				EnableDefaultFiles = true,
+				FileSystem = new PhysicalFileSystem(@"C:\projects\VCT\VCT.Server"),
+				RequestPath = new PathString("")
+			};
+			fsOptions.DefaultFilesOptions.DefaultFileNames = new[] {"index.html"};
 
+			appBuilder.UseFileServer(fsOptions);
 			appBuilder.UseWebApi(config);
 			appBuilder.UseSimpleLogger(options);
-
 		}
 	}
 }
