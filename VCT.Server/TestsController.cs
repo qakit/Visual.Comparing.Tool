@@ -113,15 +113,15 @@ namespace VCT.Server
 										where string.Equals(diffDirectory.Name, stable.Name, StringComparison.InvariantCultureIgnoreCase)
 										where stable != null
 										select stable).FirstOrDefault();
-				var stableFilesList = GetResultImages(stableFolderPath).Select(d => d.FullName).ToList();
+				var stableFilesList = GetResultImages(stableFolderPath).Select(d => new TestResult{Name = d.Name, Path = d.FullName}).ToList();
 
 				var testingFolderPath = (from testing in storage.TestingFilesDirectory.GetDirectories()
 										 where string.Equals(diffDirectory.Name, testing.Name, StringComparison.InvariantCultureIgnoreCase)
 										 where testing != null
 										 select testing).FirstOrDefault();
-				var testingFilesList = GetResultImages(testingFolderPath).Select(d => d.FullName).ToList();
+				var testingFilesList = GetResultImages(testingFolderPath).Select(d => new TestResult{Name = d.Name, Path = d.FullName}).ToList();
 
-				var diffFilesList = GetResultImages(diffDirectory).Select(d => d.FullName).ToList();
+				List<TestResult> diffFilesList = GetResultImages(diffDirectory).Select(d => new TestResult{Name = d.Name, Path = d.FullName}).ToList();
 
 				testResults.Add(new TestResultFiles
 				{
