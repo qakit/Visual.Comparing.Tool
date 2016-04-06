@@ -34,7 +34,7 @@ namespace VCT.Server
 			foreach (var key in _options.ResponseKeys)
 			{
 				_options.Log(key, env[key]);
-			}   
+			}
 		}
 
 	}
