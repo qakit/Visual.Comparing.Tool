@@ -1,9 +1,17 @@
 syntax: regexp
+
+Output/*
+Storage/*
+.nuget/*
 packages/*/*/
 VCT.Server/bin/*/*
 VCT.Test/bin/*/*
 VCT.Client/bin/*/*
+
 syntax: glob
+
+*.suo
+*.DotSettings.user
 VCT.Server/obj/*/*
 VCT.Test/obj/*/*
 VCT.Client/obj/*/*
