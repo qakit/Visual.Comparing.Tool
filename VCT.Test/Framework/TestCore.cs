@@ -1,20 +1,24 @@
-﻿using System;
+using System;
 using System.IO;
-using System.Windows.Forms;
 using OpenQA.Selenium.Remote;
-using VCT.Client;
 
-namespace VCT.Test
+namespace VCT.Test.Framework
 {
+	///we need it all just for detect when main sute of tests is started, and when over
 	public sealed class TestCore
 	{
+		#region Naming Convention
+		public const string Stable = "STABLE";
+		public const string Diff = "DIFF";
+		#endregion
+
 		private static readonly TestCore instance = new TestCore();
 
 		private TestCore()
 		{
 			Console.WriteLine("Creating instance");
 			//necessary to identify time when all tests are finished;
-			var vctCore = new Core();
+			var vctCore = new Client.Core();
 			vctCore.SuiteStarted();
 
 			AppDomain.CurrentDomain.DomainUnload += CurrentDomainOnDomainUnload;
@@ -24,10 +28,10 @@ namespace VCT.Test
 		{
 			var screenshotMaker = new ScreenshotMaker(driver);
 			screenshotMaker.MakeFullScreenshot(outputScreenFile);
-			var stableDirectory = new DirectoryInfo(Path.Combine(outputScreenFile.Directory.FullName, "STABLE"));
-			var diffDirectory = new DirectoryInfo(Path.Combine(outputScreenFile.Directory.FullName, "DIFF"));
+			var stableDirectory = new DirectoryInfo(Path.Combine(outputScreenFile.Directory.FullName, Stable));
+			var diffDirectory = new DirectoryInfo(Path.Combine(outputScreenFile.Directory.FullName, Diff));
 
-			var vctCore = new Core();
+			var vctCore = new Client.Core();
 			//Save testing files anyway
 			vctCore.SaveTestingFiles(outputScreenFile.Directory, testName);
 
@@ -59,7 +63,7 @@ namespace VCT.Test
 
 		private void CurrentDomainOnDomainUnload(object sender, EventArgs eventArgs)
 		{
-			var vctCore = new Core();
+			var vctCore = new Client.Core();
 			vctCore.SuiteCompleted();
 			Console.WriteLine("Suite has been finished");
 			//Pass end time of group test to server

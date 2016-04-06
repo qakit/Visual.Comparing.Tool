@@ -211,7 +211,6 @@ namespace VCT.Server
 				fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("image/jpeg");
 				fileContent.Headers.Add("FileName", inputFile.Name);
 				content.Add(fileContent);
-
 			}
 
 			var response = new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = content };
