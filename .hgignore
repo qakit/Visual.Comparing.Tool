@@ -3,6 +3,8 @@ packages/*/*/
 VCT.Server/bin/*/*
 VCT.Test/bin/*/*
 VCT.Client/bin/*/*
+VCT.Server/node_modules/*/*
+VCT.Server/Storage/*/*
 syntax: glob
 VCT.Server/obj/*/*
 VCT.Test/obj/*/*
