@@ -27,12 +27,14 @@ namespace VCT.Test
 		public void GoogleTest()
 		{
 			FileInfo outputScreen = new FileInfo(@"C:\projects\VCT\Output\Google\google.png");
+			FileInfo outputScreen2 = new FileInfo(@"C:\projects\VCT\Output\Google\google2.png");
 			if (!outputScreen.Directory.Exists) outputScreen.Directory.Create();
 			var core = TestCore.Instance;
 
 			driver.Manage().Window.Maximize();
 			driver.Navigate().GoToUrl("http://www.google.com/");
 			var equal = core.IsPageScreensAreEqual(driver, outputScreen, TestContext.CurrentContext.Test.FullName);
+			var equal2 = core.IsPageScreensAreEqual(driver, outputScreen2, TestContext.CurrentContext.Test.FullName);
 
 			Assert.IsTrue(equal);
 		}
