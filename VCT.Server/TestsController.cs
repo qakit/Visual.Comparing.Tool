@@ -55,6 +55,7 @@ namespace VCT.Server
 			if (!Request.Content.IsMimeMultipartContent("form-data"))
 			{
 				//if request doesn't contain any data just copy testing files to stable files (accept fail)
+				storage.DiffTestDirectory(testId).ClearContent();
 				return UpdateFilesForTest(storage.TestingTestDirectory(testId), storage.StableTestDirectory(testId));
 			}
 			return GetFilesFromClient(storage.StableTestDirectory(testId));

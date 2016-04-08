@@ -19,6 +19,18 @@ namespace VCT.Server
 			CopyDir(sourceDirectory, targetDirectory);
 		}
 
+		public static void ClearContent(this DirectoryInfo directory)
+		{
+			foreach (FileInfo fileInfo in directory.GetFiles())
+			{
+				fileInfo.Delete();
+			}
+			foreach (DirectoryInfo subDirectory in directory.GetDirectories())
+			{
+				subDirectory.ClearContent();
+			}
+		}
+
 		public static IEnumerable<FileInfo> GetFiles(this DirectoryInfo directory, string[] searchPatterns)
 		{
 			return GetFiles(directory, searchPatterns, SearchOption.AllDirectories);
@@ -38,7 +50,7 @@ namespace VCT.Server
 			foreach (var fileInfo in sourceDirectory.GetFiles())
 			{
 				var filePath = Path.Combine(targetDirectory.FullName, fileInfo.Name);
-				fileInfo.CopyTo(filePath, false);
+				fileInfo.CopyTo(filePath, true);
 			}
 
 			foreach (DirectoryInfo directoryInfo in sourceDirectory.GetDirectories())
