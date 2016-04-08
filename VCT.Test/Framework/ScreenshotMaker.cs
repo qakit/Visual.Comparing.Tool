@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
@@ -6,7 +6,7 @@ using System.Threading;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Remote;
 
-namespace VCT.Test
+namespace VCT.Test.Framework
 {
 	public class ScreenshotMaker
 	{

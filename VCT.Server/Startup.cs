@@ -4,6 +4,7 @@ using Microsoft.Owin;
 using Microsoft.Owin.FileSystems;
 using Microsoft.Owin.StaticFiles;
 using Owin;
+using Config = System.Configuration.ConfigurationManager;
 
 namespace VCT.Server
 {
@@ -27,7 +28,7 @@ namespace VCT.Server
 			var fsOptions = new FileServerOptions
 			{
 				EnableDefaultFiles = true,
-				FileSystem = new PhysicalFileSystem(@"C:\projects\VCT\VCT.Server"),
+				FileSystem = new PhysicalFileSystem(Config.AppSettings["rootDir"]),
 				RequestPath = new PathString("")
 			};
 			fsOptions.DefaultFilesOptions.DefaultFileNames = new[] {"react_index.html"};

@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Threading;
 using ImageMagick;
 
-namespace VCT.Test
+namespace VCT.Test.Framework
 {
 	public class ImageFileComparer
 	{
