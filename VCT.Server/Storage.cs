@@ -110,7 +110,7 @@ namespace VCT.Server
 			{
 				return;
 			}
-
+			
 			//get history directory named as completed date
 			var historyDirectory = new DirectoryInfo(Path.Combine(HistoryFilesDirectory.FullName, completedDate));
 			historyDirectory.Create();

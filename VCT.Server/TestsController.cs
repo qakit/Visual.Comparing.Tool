@@ -52,6 +52,11 @@ namespace VCT.Server
 		public Task<IHttpActionResult> PostStable(string testId)
 		{
 			var storage = new Storage();
+			if (!Request.Content.IsMimeMultipartContent("form-data"))
+			{
+				//if request doesn't contain any data just copy testing files to stable files (accept fail)
+				return UpdateFilesForTest(storage.TestingTestDirectory(testId), storage.StableTestDirectory(testId));
+			}
 			return GetFilesFromClient(storage.StableTestDirectory(testId));
 		}
 
@@ -245,6 +250,12 @@ namespace VCT.Server
 
 			var response = new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = content };
 			return response;
+		}
+
+		public async Task<IHttpActionResult> UpdateFilesForTest(DirectoryInfo sourceDirectory, DirectoryInfo targetDirectory)
+		{
+			sourceDirectory.CopyTo(targetDirectory);
+			return Ok(new { Message = string.Format("All files have been moved from {0} directory to {1}", sourceDirectory.FullName, targetDirectory.FullName) } );
 		}
 	}
 
