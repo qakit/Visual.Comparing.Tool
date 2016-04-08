@@ -13,12 +13,12 @@ namespace VCT.Server
 
 	public class SimpleLogger
 	{
-		private readonly Func<IDictionary<string, object>, Task> appFunc;
+		private readonly Func<IDictionary<string, object>, Task> _appFunc;
 		private readonly SimpleLoggerOptions _options;
 
 		public SimpleLogger(Func<IDictionary<string, object>, Task> func, SimpleLoggerOptions options)
 		{
-			appFunc = func;
+			_appFunc = func;
 			_options = options;
 		}
 
@@ -29,12 +29,12 @@ namespace VCT.Server
 				_options.Log(key, env[key]);
 			}
 
-			await appFunc(env);
+			await _appFunc(env);
 
 			foreach (var key in _options.ResponseKeys)
 			{
 				_options.Log(key, env[key]);
-			}   
+			}
 		}
 
 	}

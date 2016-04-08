@@ -10,12 +10,15 @@ using System.Threading.Tasks;
 using System.Web.Http;
 using System.Web.Http.Results;
 using Newtonsoft.Json;
+using Config = System.Configuration.ConfigurationManager;
 
 namespace VCT.Server
 {
 	[RoutePrefix("tests")]
 	public class TestsController : ApiController
 	{
+		public static string LocalStorage = Config.AppSettings["storage"];
+
 		[HttpGet]
 		[Route("")]
 		public string GetAllTests()
@@ -120,15 +123,27 @@ namespace VCT.Server
 										where string.Equals(diffDirectory.Name, stable.Name, StringComparison.InvariantCultureIgnoreCase)
 										where stable != null
 										select stable).FirstOrDefault();
-				var stableFilesList = GetResultImages(stableFolderPath).Select(d => new TestArtifact { Name = d.Name, Path = d.FullName, RelativePath = MakeRelativePath(@"C:\projects\VCT\VCT.Server\Storage", d.FullName) }).ToList();
+				var stableFilesList = GetResultImages(stableFolderPath).Select(d => new TestArtifact{
+						Name = d.Name, 
+						Path = d.FullName,
+						RelativePath = MakeRelativePath(LocalStorage, d.FullName)
+					}).ToList();
 
 				var testingFolderPath = (from testing in storage.TestingFilesDirectory.GetDirectories()
 										 where string.Equals(diffDirectory.Name, testing.Name, StringComparison.InvariantCultureIgnoreCase)
 										 where testing != null
 										 select testing).FirstOrDefault();
-				var testingFilesList = GetResultImages(testingFolderPath).Select(d => new TestArtifact { Name = d.Name, Path = d.FullName, RelativePath = MakeRelativePath(@"C:\projects\VCT\VCT.Server\Storage", d.FullName) }).ToList();
+				var testingFilesList = GetResultImages(testingFolderPath).Select(d => new TestArtifact{
+						Name = d.Name, 
+						Path = d.FullName,
+						RelativePath = MakeRelativePath(LocalStorage, d.FullName)
+					}).ToList();
 
-				List<TestArtifact> diffFilesList = GetResultImages(diffDirectory).Select(d => new TestArtifact { Name = d.Name, Path = d.FullName, RelativePath = MakeRelativePath(@"C:\projects\VCT\VCT.Server\Storage", d.FullName) }).ToList();
+				List<TestArtifact> diffFilesList = GetResultImages(diffDirectory).Select(d => new TestArtifact{
+						Name = d.Name, 
+						Path = d.FullName,
+						RelativePath = MakeRelativePath(LocalStorage, d.FullName)
+					}).ToList();
 
 				testResults.Add(new TestResult
 				{
@@ -246,7 +261,6 @@ namespace VCT.Server
 				fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("image/jpeg");
 				fileContent.Headers.Add("FileName", inputFile.Name);
 				content.Add(fileContent);
-
 			}
 
 			var response = new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = content };
