@@ -44,7 +44,7 @@ var NavigationResultBar = React.createClass({
                     <li><p className="navbar-text">{this.props.testName}</p></li>
                 </ul>
                 <ul className="nav navbar-nav navbar-right">
-                    <li><a href="#" id="acceptFail" onClick={this.props.clickEvent}><i id="rejectFail" className="fa fa-check"></i></a></li>
+                    <li><a href="#" id="acceptFail" onClick={this.props.clickEvent}><i id="acceptFail" className="fa fa-check"></i></a></li>
                     <li><a href="#" id="rejectFail" onClick={this.props.clickEvent}><i id="rejectFail" className="fa fa-ban"></i></a></li>
                 </ul>
             </div>
@@ -127,7 +127,7 @@ var PageContent = React.createClass({
             showDiff = false;
             
             var testingImages = this.state.testData[this.state.testIndex].Artifacts[0].TestingImages;
-            currentImageName = testingImages.leng > 0 ? thestingImages[imageIndex].Name : "";
+            currentImageName = testingImages.length > 0 ? testingImages[imageIndex].Name : "";
         }
         if(event.target.id === "previousFail"){
             if(this.state.imageIndex === 0) return;
@@ -162,6 +162,22 @@ var PageContent = React.createClass({
             maxImages = testingImages.length;
             currentImageName = testingImages.length > 0 ? testingImages[imageIndex].Name : "";
         }
+        if(event.target.id === "acceptFail"){
+            var url = 'tests//' + this.state.testData[this.state.testIndex].TestName + '//stable';
+            $.ajax({
+                url: url,
+                dataType: 'text',
+                type: 'POST',
+                cache: false,
+                success: function(data){
+                    console.log(data);
+                }.bind(this),
+                error: function(xhr, status, err){
+                    console.error(url, status.err.toString());
+                }.bind(this)
+            });
+            return;
+        }
         
         this.setState({
             imageIndex: imageIndex,
@@ -180,6 +196,7 @@ var PageContent = React.createClass({
         const testingImage = collection.filter(function(element){
             return element.Name === imageName
         })[0];
+        
         var testingImagePath;
         if(testingImage){
             testingImagePath = testingImage.RelativePath;
