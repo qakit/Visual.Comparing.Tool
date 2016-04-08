@@ -5,16 +5,20 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Web.Http;
 using System.Web.Http.Results;
 using Newtonsoft.Json;
+using Config = System.Configuration.ConfigurationManager;
 
 namespace VCT.Server
 {
 	[RoutePrefix("tests")]
 	public class TestsController : ApiController
 	{
+		public static string LocalStorage = Config.AppSettings["storage"];
+
 		[HttpGet]
 		[Route("")]
 		public string GetAllTests()
@@ -51,6 +55,11 @@ namespace VCT.Server
 		public Task<IHttpActionResult> PostStable(string testId)
 		{
 			var storage = new Storage();
+			if (!Request.Content.IsMimeMultipartContent("form-data"))
+			{
+				//if request doesn't contain any data just copy testing files to stable files (accept fail)
+				return UpdateFilesForTest(storage.TestingTestDirectory(testId), storage.StableTestDirectory(testId));
+			}
 			return GetFilesFromClient(storage.StableTestDirectory(testId));
 		}
 
@@ -103,31 +112,50 @@ namespace VCT.Server
 
 		[HttpGet]
 		[Route("fails")]
-		public JsonResult<List<TestResultFiles>> GetFails()
+		public JsonResult<List<TestResult>> GetFails()
 		{
 			var storage = new Storage();
-			var testResults = new List<TestResultFiles>();
+			var testResults = new List<TestResult>();
 			foreach (DirectoryInfo diffDirectory in storage.DiffFilesDirectory.GetDirectories())
 			{
 				var stableFolderPath = (from stable in storage.StableFilesDirectory.GetDirectories()
 										where string.Equals(diffDirectory.Name, stable.Name, StringComparison.InvariantCultureIgnoreCase)
 										where stable != null
 										select stable).FirstOrDefault();
-				var stableFilesList = GetResultImages(stableFolderPath).Select(d => new TestResult{Name = d.Name, Path = d.FullName}).ToList();
+				var stableFilesList = GetResultImages(stableFolderPath).Select(d => new TestArtifact{
+						Name = d.Name, 
+						Path = d.FullName,
+						RelativePath = MakeRelativePath(LocalStorage, d.FullName)
+					}).ToList();
 
 				var testingFolderPath = (from testing in storage.TestingFilesDirectory.GetDirectories()
 										 where string.Equals(diffDirectory.Name, testing.Name, StringComparison.InvariantCultureIgnoreCase)
 										 where testing != null
 										 select testing).FirstOrDefault();
-				var testingFilesList = GetResultImages(testingFolderPath).Select(d => new TestResult{Name = d.Name, Path = d.FullName}).ToList();
+				var testingFilesList = GetResultImages(testingFolderPath).Select(d => new TestArtifact{
+						Name = d.Name, 
+						Path = d.FullName,
+						RelativePath = MakeRelativePath(LocalStorage, d.FullName)
+					}).ToList();
 
-				List<TestResult> diffFilesList = GetResultImages(diffDirectory).Select(d => new TestResult{Name = d.Name, Path = d.FullName}).ToList();
+				List<TestArtifact> diffFilesList = GetResultImages(diffDirectory).Select(d => new TestArtifact{
+						Name = d.Name, 
+						Path = d.FullName,
+						RelativePath = MakeRelativePath(LocalStorage, d.FullName)
+					}).ToList();
 
-				testResults.Add(new TestResultFiles
+				testResults.Add(new TestResult
 				{
-					DiffImages = diffFilesList,
-					StableImages = stableFilesList,
-					TestingImages = testingFilesList
+					TestName = diffDirectory.Name,
+					Artifacts = new List<TestArtifacts>
+					{
+						new TestArtifacts
+						{
+							DiffImages = diffFilesList,
+							StableImages = stableFilesList,
+							TestingImages = testingFilesList
+						}
+					}
 				});
 			}
 			return Json(testResults);
@@ -152,7 +180,7 @@ namespace VCT.Server
 
 		private List<FileInfo> GetResultImages(DirectoryInfo directoryToSearch)
 		{
-			var imageFiles = directoryToSearch.GetFiles(new[] {"*.png", "*.bmp", "*.jpeg", "*.jpg", "*.gif"},
+			var imageFiles = directoryToSearch.GetFiles(new[] { "*.png", "*.bmp", "*.jpeg", "*.jpg", "*.gif" },
 				SearchOption.TopDirectoryOnly);
 			return imageFiles.ToList();
 		}
@@ -171,6 +199,27 @@ namespace VCT.Server
 
 				return obj.Name.GetHashCode();
 			}
+		}
+
+		public static String MakeRelativePath(String fromPath, String toPath)
+		{
+			if (String.IsNullOrEmpty(fromPath)) throw new ArgumentNullException("fromPath");
+			if (String.IsNullOrEmpty(toPath)) throw new ArgumentNullException("toPath");
+
+			Uri fromUri = new Uri(fromPath);
+			Uri toUri = new Uri(toPath);
+
+			if (fromUri.Scheme != toUri.Scheme) { return toPath; } // path can't be made relative.
+
+			Uri relativeUri = fromUri.MakeRelativeUri(toUri);
+			String relativePath = Uri.UnescapeDataString(relativeUri.ToString());
+
+			if (toUri.Scheme.Equals("file", StringComparison.InvariantCultureIgnoreCase))
+			{
+				relativePath = relativePath.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+			}
+
+			return relativePath;
 		}
 
 		/// <summary>
@@ -215,6 +264,12 @@ namespace VCT.Server
 
 			var response = new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = content };
 			return response;
+		}
+
+		public async Task<IHttpActionResult> UpdateFilesForTest(DirectoryInfo sourceDirectory, DirectoryInfo targetDirectory)
+		{
+			sourceDirectory.CopyTo(targetDirectory);
+			return Ok(new { Message = string.Format("All files have been moved from {0} directory to {1}", sourceDirectory.FullName, targetDirectory.FullName) } );
 		}
 	}
 

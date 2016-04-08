@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using Config = System.Configuration.ConfigurationManager;
 
 namespace VCT.Server
 {
@@ -12,7 +13,7 @@ namespace VCT.Server
 		public Storage()
 		{
 			//TODO: move it to app.config or evaluate from code
-			_rootDirectory = new DirectoryInfo(@"C:\projects\VCT\Storage");
+			_rootDirectory = new DirectoryInfo(Config.AppSettings["storage"]);
 			CreateFoldersHierarhy();
 		}
 
