@@ -18,7 +18,7 @@
 		}]
 	}]
 }];
-            
+
 var TestNameElement = React.createClass({
     render: function(){
         return (
@@ -56,10 +56,10 @@ var TestResultContainer = React.createClass({
     render: function(){
         return (
             <div className="flexChild rowParent">
-                <div className="flexChild">
+                <div id="leftImage" className="flexChild">
                     <img src={this.props.left}/>
                 </div>
-                <div className="flexChild">
+                <div id="rightImage" className="flexChild">
                     <img src={this.props.right} />
                 </div>
             </div>
@@ -184,3 +184,17 @@ ReactDOM.render(
     document.getElementById('root')
 )
 
+var $imageContainers = $("#leftImage, #rightImage");
+
+var sync = function(e){
+    var $other = $imageContainers.not(this).off('scroll'), other = $other.get(0);
+        
+    var verticalPercentage = this.scrollTop / (this.scrollHeight - this.offsetHeight);
+    var horizontalPercentage = this.scrollLeft / (this.scrollWidth - this.offsetWidth);
+    other.scrollLeft = horizontalPercentage * (other.scrollWidth - other.offsetWidth);
+    other.scrollTop = verticalPercentage * (other.scrollHeight - other.offsetHeight);
+    
+    setTimeout( function(){ $other.on('scroll', sync ); },10);
+}
+
+$imageContainers.on('scroll', sync);
