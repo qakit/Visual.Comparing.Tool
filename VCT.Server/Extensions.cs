@@ -14,6 +14,11 @@ namespace VCT.Server
 			CopyDir(sourceDirectory, targetDirectoryInfo);
 		}
 
+		public static void CopyTo(this DirectoryInfo sourceDirectory, DirectoryInfo targetDirectory)
+		{
+			CopyDir(sourceDirectory, targetDirectory);
+		}
+
 		public static IEnumerable<FileInfo> GetFiles(this DirectoryInfo directory, string[] searchPatterns)
 		{
 			return GetFiles(directory, searchPatterns, SearchOption.AllDirectories);
