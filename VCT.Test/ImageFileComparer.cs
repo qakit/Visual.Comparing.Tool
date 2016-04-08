@@ -46,8 +46,8 @@ namespace VCT.Test
 				if (!diffDirectory.Exists) diffDirectory.Create();
 
 				var outputErrorFile = Path.Combine(
-					diffDirectory.FullName, 
-					Path.GetFileNameWithoutExtension(actualOutputImageFile.Name) + "_comparingResults.png");
+					diffDirectory.FullName,
+					actualOutputImageFile.Name);
 				outputErrorImage.Write(outputErrorFile);
 				return false;
 			}
