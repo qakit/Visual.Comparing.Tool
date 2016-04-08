@@ -77,7 +77,8 @@ var PageContent = React.createClass({
                 var maxTests = data.length;
                 
                 var testingImages = data[0].Artifacts[0].TestingImages;
-                var initialImageName = testingImages[0].Name;
+                var initialImageName = testingImages.length > 0 ? testingImages[0].Name : "";
+                
                 this.setState({
                     testData: data,
                     maxTests: maxTests,
@@ -121,12 +122,12 @@ var PageContent = React.createClass({
         }
         if(event.target.id === "nextFail"){
             if(this.state.imageIndex === (this.state.maxImages - 1)) return;
-            console.log(this.state.maxImages);
+            
             imageIndex = this.state.imageIndex + 1;
             showDiff = false;
             
             var testingImages = this.state.testData[this.state.testIndex].Artifacts[0].TestingImages;
-            currentImageName = testingImages[imageIndex].Name;
+            currentImageName = testingImages.leng > 0 ? thestingImages[imageIndex].Name : "";
         }
         if(event.target.id === "previousFail"){
             if(this.state.imageIndex === 0) return;
@@ -134,7 +135,7 @@ var PageContent = React.createClass({
             showDiff = false
             
             var testingImages = this.state.testData[this.state.testIndex].Artifacts[0].TestingImages;
-            currentImageName = testingImages[imageIndex].Name;
+            currentImageName = testingImages.length > 0 ? testingImages[imageIndex].Name : "";
         }
         if(event.target.id === "previousTest"){
             if(this.state.testIndex === 0) return;
@@ -146,7 +147,7 @@ var PageContent = React.createClass({
             var testingImages = this.state.testData[testIndex].Artifacts[0].TestingImages;
             
             maxImages = testingImages.length;
-            currentImageName = testingImages[imageIndex].Name;
+            currentImageName = testingImages.length > 0 ? testingImages[imageIndex].Name : "";
         }
          if(event.target.id === "nextTest"){
             if(this.state.testIndex === (this.state.maxTests - 1)) return;
@@ -159,7 +160,7 @@ var PageContent = React.createClass({
             var testingImages = this.state.testData[testIndex].Artifacts[0].TestingImages;
             
             maxImages = testingImages.length;
-            currentImageName = testingImages[imageIndex].Name;
+            currentImageName = testingImages.length > 0 ? testingImages[imageIndex].Name : "";
         }
         
         this.setState({
@@ -179,10 +180,21 @@ var PageContent = React.createClass({
         const testingImage = collection.filter(function(element){
             return element.Name === imageName
         })[0];
-
+        var testingImagePath;
+        if(testingImage){
+            testingImagePath = testingImage.RelativePath;
+        } else{
+            if(this.state.showDiff){
+                testingImagePath = "images\\nodiff.png";
+            } else{
+                testingImagePath = "images\\notesting.png"
+            }
+        }
+                
         const stableImage = artifacts[0].StableImages.filter(function(element){
             return element.Name === imageName;
         })[0];
+        var stableImagePath = stableImage ? stableImage.RelativePath : "images\\nostable.png";
 
         return(
             <div className="flexChild columnParent"> 
@@ -195,7 +207,7 @@ var PageContent = React.createClass({
                         />
                     </div>
                 </nav>
-                <TestResultContainer left={stableImage.RelativePath} right={testingImage.RelativePath}/>
+                <TestResultContainer left={stableImagePath} right={testingImagePath}/>
             </div>
         );
     }
