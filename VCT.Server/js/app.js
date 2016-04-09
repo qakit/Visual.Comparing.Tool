@@ -93,8 +93,11 @@ var PageContent = React.createClass({
         });
     },
     componentDidMount: function(){
-        console.log('getting data');
+        $(document.body).on('keydown', this.handleKeyDown);
         this.loadDataFromServer(); 
+    },
+    componenWillUnmount: function(){
+        $(document.body).off('keydown', this.handleKeyDown);  
     },
     getInitialState: function(){
         return ({
@@ -117,11 +120,17 @@ var PageContent = React.createClass({
         var testIndex = this.state.testIndex;
         var currentImageName = this.state.imageName;
         var maxImages = this.state.maxImages;
-        
-        if(event.target.id === "showDiff"){
+        var id;
+        if(typeof event === "string"){
+            id = event;
+        }else{
+            id = event.target.id;
+        }
+                
+        if(id === "showDiff"){
             showDiff = !this.state.showDiff;
         }
-        if(event.target.id === "nextFail"){
+        if(id === "nextFail"){
             if(this.state.imageIndex === (this.state.maxImages - 1)) return;
             
             imageIndex = this.state.imageIndex + 1;
@@ -130,7 +139,7 @@ var PageContent = React.createClass({
             var testingImages = this.state.testData[this.state.testIndex].Artifacts[0].TestingImages;
             currentImageName = testingImages.length > 0 ? testingImages[imageIndex].Name : "";
         }
-        if(event.target.id === "previousFail"){
+        if(id === "previousFail"){
             if(this.state.imageIndex === 0) return;
             imageIndex = this.state.imageIndex - 1,
             showDiff = false
@@ -138,7 +147,7 @@ var PageContent = React.createClass({
             var testingImages = this.state.testData[this.state.testIndex].Artifacts[0].TestingImages;
             currentImageName = testingImages.length > 0 ? testingImages[imageIndex].Name : "";
         }
-        if(event.target.id === "previousTest"){
+        if(id === "previousTest"){
             if(this.state.testIndex === 0) return;
             
             imageIndex = 0;
@@ -150,7 +159,7 @@ var PageContent = React.createClass({
             maxImages = testingImages.length;
             currentImageName = testingImages.length > 0 ? testingImages[imageIndex].Name : "";
         }
-         if(event.target.id === "nextTest"){
+         if(id === "nextTest"){
             if(this.state.testIndex === (this.state.maxTests - 1)) return;
             
             testIndex = this.state.testIndex + 1;
@@ -163,7 +172,7 @@ var PageContent = React.createClass({
             maxImages = testingImages.length;
             currentImageName = testingImages.length > 0 ? testingImages[imageIndex].Name : "";
         }
-        if(event.target.id === "acceptFail"){
+        if(id === "acceptFail"){
             var url = 'tests//' + this.state.testData[this.state.testIndex].TestName + '//stable';
             $.ajax({
                 url: url,
@@ -187,6 +196,33 @@ var PageContent = React.createClass({
             imageName: currentImageName,
             maxImages: maxImages
         })
+    },
+    handleKeyDown: function(event){
+        //rigth arrow
+        if(event.keyCode === 39){
+            this.handleChildClick("nextFail");
+            return;
+        }
+        //left arrow
+        if(event.keyCode === 37){
+            this.handleChildClick("previousFail");
+            return;
+        }
+        //up arrow
+        if(event.keyCode === 38){
+            this.handleChildClick("previousTest");
+            return;
+        }
+        //down arrow
+        if(event.keyCode === 40){
+            this.handleChildClick("nextTest");
+            return;
+        }
+        //space
+        if(event.keyCode === 32){
+            this.handleChildClick("showDiff");
+            return;
+        }
     },
     render: function(){
         const {TestName: testName, Artifacts: artifacts} = this.state.testData[this.state.testIndex];
