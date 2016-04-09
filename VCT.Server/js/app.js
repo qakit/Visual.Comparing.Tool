@@ -32,12 +32,13 @@ var TestNameElement = React.createClass({
 var NavigationResultBar = React.createClass({
     render: function(){
         const diffIconClass = this.props.showDiff ? "fa fa-eye-slash" : "fa fa-eye";
-        
+        const imageIndex = this.props.currentImageIndex + 1;
         return(
             <div className="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                 <ul className="nav navbar-nav">
                     <li><a href="#" id="previousTest" onClick={this.props.clickEvent}><i  id="previousTest" className="fa fa-step-backward"></i></a></li>
                     <li><a href="#" id="previousFail" onClick={this.props.clickEvent}><i id="previousFail" className="fa fa-backward"></i></a></li>
+                    <li><p className="navbar-text">{imageIndex} / {this.props.maxImages}</p></li>
                     <li><a href="#" id="nextFail" onClick={this.props.clickEvent}><i id="nextFail" className="fa fa-forward"></i></a></li>
                     <li><a href="#" id="nextTest" onClick={this.props.clickEvent}><i id="nextTest" className="fa fa-step-forward"></i></a></li>
                     <li><a href="#" id="showDiff" onClick={this.props.clickEvent}><i id="showDiff" className={diffIconClass}></i></a></li>
@@ -68,7 +69,7 @@ var TestResultContainer = React.createClass({
 });
 
 var PageContent = React.createClass({
-    loadCommentsFromServer: function() {
+    loadDataFromServer: function() {
         $.ajax({
             url: this.props.url,
             dataType: 'json',
@@ -93,7 +94,7 @@ var PageContent = React.createClass({
     },
     componentDidMount: function(){
         console.log('getting data');
-       this.loadCommentsFromServer(); 
+        this.loadDataFromServer(); 
     },
     getInitialState: function(){
         return ({
@@ -170,7 +171,7 @@ var PageContent = React.createClass({
                 type: 'POST',
                 cache: false,
                 success: function(data){
-                    console.log(data);
+                    this.loadDataFromServer();
                 }.bind(this),
                 error: function(xhr, status, err){
                     console.error(url, status.err.toString());
@@ -221,6 +222,8 @@ var PageContent = React.createClass({
                             clickEvent={this.handleChildClick}
                             showDiff = {this.state.showDiff}
                             testName = {testName}
+                            currentImageIndex = {this.state.imageIndex}
+                            maxImages = {this.state.maxImages}
                         />
                     </div>
                 </nav>
@@ -231,7 +234,7 @@ var PageContent = React.createClass({
 });
 
 ReactDOM.render(
-    <PageContent url="http://localhost:9111/tests/fails"/>,
+    <PageContent url="http://192.168.33.21:9111/tests/fails"/>,
     document.getElementById('root')
 )
 
