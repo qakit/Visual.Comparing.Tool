@@ -11,6 +11,8 @@ namespace VCT.Client
 	{
 		private const string BaseServerAddress = "http://localhost:9111/";
 
+		#region get-set wrapers
+
 		/// <summary>
 		/// Saves all testing files from specified directory to file server
 		/// </summary>
@@ -18,9 +20,9 @@ namespace VCT.Client
 		/// <param name="testName">Unique test name (will be used to search for files/folders on server)</param>
 		public void SaveTestingFiles(DirectoryInfo testingFilesDirectory, string testName)
 		{
-			string url = string.Format("{0}/tests/{1}/testing", BaseServerAddress, testName);
+			string destinationUrl = string.Format("{0}/tests/{1}/testing", BaseServerAddress, testName);
 
-			SaveFilesToServer(url, testingFilesDirectory);
+			SaveFilesToServer(destinationUrl, testingFilesDirectory);
 		}
 
 		/// <summary>
@@ -28,12 +30,13 @@ namespace VCT.Client
 		/// </summary>
 		/// <param name="outputTestingFilesDirectory">Directory to put testing files</param>
 		/// <param name="testName">Unique test name (will be used to search for files/folders on server)</param>
+		/// <returns></returns>
 		public bool GetTestingFiles(DirectoryInfo outputTestingFilesDirectory, string testName)
 		{
 			//TODO download and put all testing files for specified test to folder;
-			string url = string.Format("{0}/tests/{1}/testing", BaseServerAddress, testName);
-			
-			return GetFilesFromServer(url, outputTestingFilesDirectory).Result;
+			string sourceUrl = string.Format("{0}/tests/{1}/testing", BaseServerAddress, testName);
+
+			return GetFilesFromServer(sourceUrl, outputTestingFilesDirectory).Result;
 		}
 
 		/// <summary>
@@ -88,6 +91,10 @@ namespace VCT.Client
 			return GetFilesFromServer(url, outputDiffFilesDirectory).Result;
 		}
 
+		#endregion
+
+		#region api post wrapers
+
 		/// <summary>
 		/// Inform server that test suite has started
 		/// </summary>
@@ -105,6 +112,26 @@ namespace VCT.Client
 			string url = string.Format("{0}/tests/suite/stop", BaseServerAddress);
 			PostMessage(url, "Suite completed");
 		}
+
+		/// <summary>
+		/// Post message to specified url
+		/// </summary>
+		/// <param name="url">Url to send message</param>
+		/// <param name="message">Message</param>
+		private void PostMessage(string url, string message)
+		{
+			Console.WriteLine("Posting message {0}", message);
+			using (var httpClient = new HttpClient())
+			{
+				var content = new StringContent(message);
+				var result = httpClient.PostAsync(url, content).Result;
+				Console.WriteLine(result);
+			}
+		}
+
+		#endregion
+
+		#region most important part
 
 		/// <summary>
 		/// Saves files from specified directory to server. Send POST request to specified url with MultipartFormDataContent
@@ -163,20 +190,6 @@ namespace VCT.Client
 			}
 		}
 
-		/// <summary>
-		/// Post message to specified url
-		/// </summary>
-		/// <param name="url">Url to send message</param>
-		/// <param name="message">Message</param>
-		private void PostMessage(string url, string message)
-		{
-			Console.WriteLine("Posting message {0}", message);
-			using (var httpClient = new HttpClient())
-			{
-				var content = new StringContent(message);
-				var result = httpClient.PostAsync(url, content).Result;
-				Console.WriteLine(result);
-			}
-		}
+		#endregion
 	}
 }
