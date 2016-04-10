@@ -10,9 +10,9 @@ namespace VCT.Server
 
 	public class TestArtifacts
 	{
-		public List<TestArtifact> DiffImages { get; set; }
-		public List<TestArtifact> TestingImages { get; set; }
-		public List<TestArtifact> StableImages { get; set; }
+		public TestArtifact StableFile { get; set; }
+		public TestArtifact TestingFile { get; set; }
+		public TestArtifact DiffFile { get; set; }
 	}
 
 	public class TestArtifact

@@ -1,23 +1,15 @@
- var fakeData = [{
-	"TestName": "",
-	"Artifacts": [{
-		"DiffImages": [{
-			"Name": "",
-			"Path": "",
-			"RelativePath": ""
-		}],
-		"TestingImages": [{
-			"Name": "",
-			"Path": "",
-			"RelativePath": ""
-		}],
-		"StableImages": [{
-			"Name": "",
-			"Path": "",
-			"RelativePath": ""
-		}]
-	}]
-}];
+var fakeData = [{
+   "TestName" : "",
+   "Artifacts" : [
+    {
+       "StableFile" : {
+        },
+       "TestingFile" : {
+        },
+       "DiffFile" : {
+        }
+   }] 
+}]
 
 var TestNameElement = React.createClass({
     render: function(){
@@ -33,6 +25,8 @@ var NavigationResultBar = React.createClass({
     render: function(){
         const diffIconClass = this.props.showDiff ? "fa fa-eye-slash" : "fa fa-eye";
         const imageIndex = this.props.currentImageIndex + 1;
+        const display = this.props.hasDiff ? {display: "inline"} : {display: "none"};
+        
         return(
             <div className="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                 <ul className="nav navbar-nav">
@@ -41,7 +35,7 @@ var NavigationResultBar = React.createClass({
                     <li><p className="navbar-text">{imageIndex} / {this.props.maxImages}</p></li>
                     <li><a href="#" id="nextFail" onClick={this.props.clickEvent}><i id="nextFail" className="fa fa-forward"></i></a></li>
                     <li><a href="#" id="nextTest" onClick={this.props.clickEvent}><i id="nextTest" className="fa fa-step-forward"></i></a></li>
-                    <li><a href="#" id="showDiff" onClick={this.props.clickEvent}><i id="showDiff" className={diffIconClass}></i></a></li>
+                    <li style={display}><a href="#" id="showDiff" onClick={this.props.clickEvent}><i id="showDiff" className={diffIconClass}></i></a></li>
                     <li><p className="navbar-text">{this.props.testName}</p></li>
                 </ul>
                 <ul className="nav navbar-nav navbar-right">
@@ -76,21 +70,33 @@ var PageContent = React.createClass({
             cache: false,
             success: function(data) {
                 var maxTests = data.length;
-                
-                var testingImages = data[0].Artifacts[0].TestingImages;
-                var initialImageName = testingImages.length > 0 ? testingImages[0].Name : "";
-                
+                var hasDiff = data[0].Artifacts[0].DiffFile.Name !== undefined;
                 this.setState({
+                    imageIndex: 0,
+                    showDiff: false,
+                    hasDiff: hasDiff,
                     testData: data,
                     maxTests: maxTests,
-                    maxImages: testingImages.length,
-                    imageName: initialImageName 
+                    maxImages: data[0].Artifacts.length,
+                    imageName: this.getCurrentImageName(data[0].Artifacts[0]) 
             });
             }.bind(this),
             error: function(xhr, status, err) {
                 console.error(this.props.url, status, err.toString());
             }.bind(this)
         });
+    },
+    getCurrentImageName: function(artifact){
+        if(artifact.TestingFile.Name !== undefined){
+            return artifact.TestingFile.Name;
+        }
+        if(artifact.StableFile.Name !== undefined){
+            return artifact.StableFile.Name;
+        }
+        if(artifact.DiffFile.Name !== undefined){
+            return artifact.DiffFile.Name;
+        }
+        return "";
     },
     componentDidMount: function(){
         $(document.body).on('keydown', this.handleKeyDown);
@@ -111,23 +117,26 @@ var PageContent = React.createClass({
             imageName: "",
             //show diff image instead of stable or not
             showDiff: false,
+            hasDiff: false,
             testData: fakeData
         });
     },
     handleChildClick: function(event){
         var imageIndex = this.state.imageIndex;
         var showDiff = this.state.showDiff;
+        var hasDiff = this.state.hasDiff;
         var testIndex = this.state.testIndex;
         var currentImageName = this.state.imageName;
         var maxImages = this.state.maxImages;
         var id;
+        
         if(typeof event === "string"){
             id = event;
         }else{
             id = event.target.id;
         }
                 
-        if(id === "showDiff"){
+        if(id === "showDiff" && hasDiff){
             showDiff = !this.state.showDiff;
         }
         if(id === "nextFail"){
@@ -135,17 +144,11 @@ var PageContent = React.createClass({
             
             imageIndex = this.state.imageIndex + 1;
             showDiff = false;
-            
-            var testingImages = this.state.testData[this.state.testIndex].Artifacts[0].TestingImages;
-            currentImageName = testingImages.length > 0 ? testingImages[imageIndex].Name : "";
         }
         if(id === "previousFail"){
             if(this.state.imageIndex === 0) return;
             imageIndex = this.state.imageIndex - 1,
             showDiff = false
-            
-            var testingImages = this.state.testData[this.state.testIndex].Artifacts[0].TestingImages;
-            currentImageName = testingImages.length > 0 ? testingImages[imageIndex].Name : "";
         }
         if(id === "previousTest"){
             if(this.state.testIndex === 0) return;
@@ -154,10 +157,7 @@ var PageContent = React.createClass({
             showDiff = false;
             testIndex = this.state.testIndex - 1;
             
-            var testingImages = this.state.testData[testIndex].Artifacts[0].TestingImages;
-            
-            maxImages = testingImages.length;
-            currentImageName = testingImages.length > 0 ? testingImages[imageIndex].Name : "";
+            maxImages = this.state.testData[testIndex].Artifacts.length;
         }
          if(id === "nextTest"){
             if(this.state.testIndex === (this.state.maxTests - 1)) return;
@@ -165,12 +165,8 @@ var PageContent = React.createClass({
             testIndex = this.state.testIndex + 1;
             imageIndex = 0;
             showDiff = false;
-            maxImages = this.state.testData.length;
             
-            var testingImages = this.state.testData[testIndex].Artifacts[0].TestingImages;
-            
-            maxImages = testingImages.length;
-            currentImageName = testingImages.length > 0 ? testingImages[imageIndex].Name : "";
+            maxImages = this.state.testData[testIndex].Artifacts.length;
         }
         if(id === "acceptFail"){
             var url = 'tests//' + this.state.testData[this.state.testIndex].TestName + '//stable';
@@ -189,9 +185,13 @@ var PageContent = React.createClass({
             return;
         }
         
+        currentImageName = this.getCurrentImageName(this.state.testData[testIndex].Artifacts[imageIndex]);
+        hasDiff = this.state.testData[testIndex].Artifacts[imageIndex].DiffFile.Name !== undefined;
+        
         this.setState({
             imageIndex: imageIndex,
             showDiff: showDiff,
+            hasDiff: hasDiff,
             testIndex : testIndex,
             imageName: currentImageName,
             maxImages: maxImages
@@ -226,16 +226,13 @@ var PageContent = React.createClass({
     },
     render: function(){
         const {TestName: testName, Artifacts: artifacts} = this.state.testData[this.state.testIndex];
-        const collection = this.state.showDiff ? artifacts[0].DiffImages : artifacts[0].TestingImages;
+        const testingImage = this.state.showDiff ? artifacts[this.state.imageIndex].DiffFile : artifacts[this.state.imageIndex].TestingFile;
         
         const imageName = this.state.imageName;
-
-        const testingImage = collection.filter(function(element){
-            return element.Name === imageName
-        })[0];
         
         var testingImagePath;
-        if(testingImage){
+        
+        if(testingImage.RelativePath !== undefined){
             testingImagePath = testingImage.RelativePath;
         } else{
             if(this.state.showDiff){
@@ -245,11 +242,14 @@ var PageContent = React.createClass({
             }
         }
                 
-        const stableImage = artifacts[0].StableImages.filter(function(element){
-            return element.Name === imageName;
-        })[0];
-        var stableImagePath = stableImage ? stableImage.RelativePath : "images\\nostable.png";
-
+        const stableImage = artifacts[this.state.imageIndex].StableFile;
+        var stableImagePath 
+        if(stableImage.RelativePath !== undefined){
+            stableImagePath = stableImage.RelativePath; 
+        }else{
+            stableImagePath = "images\\nostable.png"; 
+        }
+        
         return(
             <div className="flexChild columnParent"> 
                 <nav className="navbar navbar-default">
@@ -260,6 +260,7 @@ var PageContent = React.createClass({
                             testName = {testName}
                             currentImageIndex = {this.state.imageIndex}
                             maxImages = {this.state.maxImages}
+                            hasDiff = {this.state.hasDiff}
                         />
                     </div>
                 </nav>
@@ -270,7 +271,7 @@ var PageContent = React.createClass({
 });
 
 ReactDOM.render(
-    <PageContent url="http://192.168.33.21:9111/tests/fails"/>,
+    <PageContent url="http://localhost:9111/tests/fails"/>,
     document.getElementById('root')
 )
 
