@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -116,51 +117,61 @@ namespace VCT.Server
 		public JsonResult<List<TestResult>> GetFails()
 		{
 			var storage = new Storage();
-			var testResults = new List<TestResult>();
+			var testsResults = new List<TestResult>();
+
+			//Here we consider that diff directory will be created on any fail! 
+			//No fail, no diff directory!
 			foreach (DirectoryInfo diffDirectory in storage.DiffFilesDirectory.GetDirectories())
 			{
+				//Get stable directory path
 				var stableFolderPath = (from stable in storage.StableFilesDirectory.GetDirectories()
 										where string.Equals(diffDirectory.Name, stable.Name, StringComparison.InvariantCultureIgnoreCase)
 										where stable != null
 										select stable).FirstOrDefault();
-				var stableFilesList = GetResultImages(stableFolderPath).Select(d => new TestArtifact{
-						Name = d.Name, 
-						Path = d.FullName,
-						RelativePath = MakeRelativePath(LocalStorage, d.FullName)
-					}).ToList();
-
+				//Get testing directory path
 				var testingFolderPath = (from testing in storage.TestingFilesDirectory.GetDirectories()
 										 where string.Equals(diffDirectory.Name, testing.Name, StringComparison.InvariantCultureIgnoreCase)
 										 where testing != null
 										 select testing).FirstOrDefault();
-				var testingFilesList = GetResultImages(testingFolderPath).Select(d => new TestArtifact{
-						Name = d.Name, 
-						Path = d.FullName,
-						RelativePath = MakeRelativePath(LocalStorage, d.FullName)
-					}).ToList();
+				//Get all images from all directories
+				var stableImages = GetResultImages(stableFolderPath);
+				var testingImages = GetResultImages(testingFolderPath);
+				var diffImages = GetResultImages(diffDirectory);
+				
+				//find longest list as all directories might have different number of images so we need to find max one
+				//to make sure that we no iterate throught smallest one
+				//how to avoid this? merge three lists into one excluding all repeated images?
 
-				List<TestArtifact> diffFilesList = GetResultImages(diffDirectory).Select(d => new TestArtifact{
-						Name = d.Name, 
-						Path = d.FullName,
-						RelativePath = MakeRelativePath(LocalStorage, d.FullName)
-					}).ToList();
+				var longestList = FindLongest(stableImages, testingImages, diffImages);
 
-				testResults.Add(new TestResult
+				var artifactsCollection = new List<TestArtifacts>();
+
+				foreach (FileInfo imageFile in longestList)
+				{
+					var stableFile = GetFileByName(stableImages, imageFile.Name);
+					var testingFile = GetFileByName(testingImages, imageFile.Name);
+					var diffFile = GetFileByName(diffImages, imageFile.Name);
+
+					var stableData = GetAtrifactDescription(stableFile);
+					var testingData = GetAtrifactDescription(testingFile);
+					var diffData = GetAtrifactDescription(diffFile);
+
+					artifactsCollection.Add(new TestArtifacts
+					{
+						StableFile = stableData,
+						TestingFile = testingData,
+						DiffFile = diffData
+					});
+				}
+
+				testsResults.Add(new TestResult
 				{
 					TestName = diffDirectory.Name,
-					Artifacts = new List<TestArtifacts>
-					{
-						new TestArtifacts
-						{
-							DiffImages = diffFilesList,
-							StableImages = stableFilesList,
-							TestingImages = testingFilesList
-						}
-					}
+					Artifacts = artifactsCollection
 				});
 			}
-			return Json(testResults);
-			//			return (from directory in storage.DiffFilesDirectory.GetDirectories() select directory.FullName).ToArray();
+
+			return Json(testsResults, new JsonSerializerSettings{NullValueHandling = NullValueHandling.Ignore});
 		}
 
 		[HttpGet]
@@ -185,6 +196,54 @@ namespace VCT.Server
 				SearchOption.TopDirectoryOnly);
 			return imageFiles.ToList();
 		}
+
+
+		/// <summary>
+		/// gets the desctiption of the current artifact file
+		/// </summary>
+		/// <param name="artifactFile">Artifact as <see cref="FileInfo"/></param>
+		/// <returns><see cref="TestArtifact"/> with Name (empty if null), Path (empty if null)</returns>
+		private TestArtifact GetAtrifactDescription(FileInfo artifactFile)
+		{
+			if (artifactFile == null) return new TestArtifact();
+
+			return new TestArtifact
+			{
+				Name = artifactFile.Name,
+				Path = artifactFile.FullName,
+				RelativePath = MakeRelativePath(LocalStorage, artifactFile.FullName)
+			};
+		}
+
+		/// <summary>
+		/// Search for element in the list by it's possible name
+		/// </summary>
+		/// <param name="listToSearchIn">List of files to search in</param>
+		/// <param name="fileNameToSearch">Expected file name</param>
+		/// <returns><see cref="FileInfo"/> or null if no file exist in the list</returns>
+		private FileInfo GetFileByName(List<FileInfo> listToSearchIn, string fileNameToSearch)
+		{
+			return (from item in listToSearchIn
+					where string.Equals(item.Name, fileNameToSearch, StringComparison.InvariantCultureIgnoreCase)
+					select item).FirstOrDefault();
+		}
+
+		/// <summary>
+		/// Gets the longest list from the specified
+		/// </summary>
+		/// <param name="lists">Lists</param>
+		/// <returns>Longest list</returns>
+		private IEnumerable<FileInfo> FindLongest(params List<FileInfo>[] lists)
+		{
+			var longest = lists[0];
+			for (var i = 1; i < lists.Length; i++)
+			{
+				if (lists[i].Count > longest.Count)
+					longest = lists[i];
+			}
+			return longest;
+		}
+
 
 		public class DirectoryComparer : IEqualityComparer<DirectoryInfo>
 		{
@@ -270,7 +329,7 @@ namespace VCT.Server
 		public async Task<IHttpActionResult> UpdateFilesForTest(DirectoryInfo sourceDirectory, DirectoryInfo targetDirectory)
 		{
 			sourceDirectory.CopyTo(targetDirectory);
-			return Ok(new { Message = string.Format("All files have been moved from {0} directory to {1}", sourceDirectory.FullName, targetDirectory.FullName) } );
+			return Ok(new { Message = string.Format("All files have been moved from {0} directory to {1}", sourceDirectory.FullName, targetDirectory.FullName) });
 		}
 	}
 

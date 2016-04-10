@@ -47,6 +47,8 @@ namespace VCT.Server
 		private static void CopyDir(DirectoryInfo sourceDirectory, DirectoryInfo targetDirectory)
 		{
 			if(!targetDirectory.Exists) targetDirectory.Create();
+			//remove all previous files to avoid adding extra images;
+			targetDirectory.ClearContent();
 			foreach (var fileInfo in sourceDirectory.GetFiles())
 			{
 				var filePath = Path.Combine(targetDirectory.FullName, fileInfo.Name);
