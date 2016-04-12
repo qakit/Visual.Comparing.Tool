@@ -219,7 +219,7 @@ var PageContent = React.createClass({
             return;
         }
         //space
-        if(event.keyCode === 32){
+        if(event.keyCode === 32 && this.state.hasDiff){
             this.handleChildClick("showDiff");
             return;
         }
