@@ -113,23 +113,82 @@ namespace VCT.Server
 		}
 
 		[HttpGet]
+		[Route("history")]
+		public JsonResult<List<HistoryResult>> GetHistory()
+		{
+			//get history for all directories in History folder
+			//include in result current fails
+			var storage = new Storage();
+			List<HistoryResult> historyResults = new List<HistoryResult>();
+
+			var currentFails = GetTestResults(storage.DiffFilesDirectory, storage.StableFilesDirectory,
+				storage.TestingFilesDirectory);
+
+			historyResults.Add(new HistoryResult
+			{
+				DateCompleted = "DateCompleted Current",
+				DateStarted = "DateStarted Current",
+				Failed = currentFails.Count,
+				Passed = GetPassedTests().Length,
+				Id = 0,
+				Tests = currentFails
+			});
+
+			int id = 1;
+
+			foreach (DirectoryInfo historyDirectory in storage.HistoryFilesDirectory.GetDirectories())
+			{
+				var historyStableDirectory = new DirectoryInfo(Path.Combine(historyDirectory.FullName, "StableFiles"));
+				var historyTestingDirectory = new DirectoryInfo(Path.Combine(historyDirectory.FullName, "TestingFiles"));
+				var historyDiffDirectory = new DirectoryInfo(Path.Combine(historyDirectory.FullName, "DiffFiles"));
+
+				var tests = GetTestResults(historyDiffDirectory, historyStableDirectory, historyTestingDirectory);
+				var passed = GetPassedTests(historyStableDirectory, historyTestingDirectory, historyDiffDirectory).Length;
+				var failed = tests.Count;
+
+				historyResults.Add(new HistoryResult
+				{
+					DateCompleted = "DateCompleted",
+					DateStarted = "DateStarted",
+					Failed = failed,
+					Passed = passed,
+					Id = id,
+					Tests = tests
+				});
+
+				id++;
+			}
+
+			return Json(historyResults);
+		}
+
+		[HttpGet]
 		[Route("fails")]
 		public JsonResult<List<TestResult>> GetFails()
 		{
 			var storage = new Storage();
+			var testsResults = GetTestResults(storage.DiffFilesDirectory, storage.StableFilesDirectory,
+				storage.TestingFilesDirectory);
+
+			return Json(testsResults);
+		}
+
+		private List<TestResult> GetTestResults(DirectoryInfo diffFilesDirectory, DirectoryInfo stableFilesDirectory,
+			DirectoryInfo testingFilesDirectory)
+		{
 			var testsResults = new List<TestResult>();
 
 			//Here we consider that diff directory will be created on any fail! 
 			//No fail, no diff directory!
-			foreach (DirectoryInfo diffDirectory in storage.DiffFilesDirectory.GetDirectories())
+			foreach (DirectoryInfo diffDirectory in diffFilesDirectory.GetDirectories())
 			{
 				//Get stable directory path
-				var stableFolderPath = (from stable in storage.StableFilesDirectory.GetDirectories()
+				var stableFolderPath = (from stable in stableFilesDirectory.GetDirectories()
 										where string.Equals(diffDirectory.Name, stable.Name, StringComparison.InvariantCultureIgnoreCase)
 										where stable != null
 										select stable).FirstOrDefault();
 				//Get testing directory path
-				var testingFolderPath = (from testing in storage.TestingFilesDirectory.GetDirectories()
+				var testingFolderPath = (from testing in testingFilesDirectory.GetDirectories()
 										 where string.Equals(diffDirectory.Name, testing.Name, StringComparison.InvariantCultureIgnoreCase)
 										 where testing != null
 										 select testing).FirstOrDefault();
@@ -137,7 +196,7 @@ namespace VCT.Server
 				var stableImages = GetResultImages(stableFolderPath);
 				var testingImages = GetResultImages(testingFolderPath);
 				var diffImages = GetResultImages(diffDirectory);
-				
+
 				//find longest list as all directories might have different number of images so we need to find max one
 				//to make sure that we no iterate throught smallest one
 				//how to avoid this? merge three lists into one excluding all repeated images?
@@ -171,7 +230,24 @@ namespace VCT.Server
 				});
 			}
 
-			return Json(testsResults, new JsonSerializerSettings{NullValueHandling = NullValueHandling.Ignore});
+			if (testsResults.Count == 0)
+			{
+				testsResults.Add(new TestResult
+				   {
+					   TestName = "",
+					   Artifacts = new List<TestArtifacts>
+					{
+						new TestArtifacts
+						{
+							DiffFile = EmptyArtifact(),
+							StableFile = EmptyArtifact(),
+							TestingFile = EmptyArtifact()
+						}
+					}
+				   });
+			}
+
+			return testsResults;
 		}
 
 		[HttpGet]
@@ -179,24 +255,48 @@ namespace VCT.Server
 		public string[] GetPassedTests()
 		{
 			var storage = new Storage();
-			//Get failed tests
-			var failedTests = storage.DiffFilesDirectory.GetDirectories();
-			//Get total amout of tests
-			var testingFiles = storage.TestingFilesDirectory.GetDirectories();
-			//find intersect files and return
-			//var passedTests = testingFiles.Except(failedTests);
-			//var passedTests = testingFiles.Select(t => t.Name).Except(failedTests.Select(f => f.Name));
-			var passedTests = testingFiles.Except(failedTests, new DirectoryComparer());
-			return (from passed in passedTests select passed.FullName).ToArray();
+
+			var passedTests = GetPassedTests(storage.StableFilesDirectory, storage.TestingFilesDirectory,
+				storage.DiffFilesDirectory);
+			return passedTests;
+		}
+
+		private string[] GetPassedTests(DirectoryInfo stableFilesDirectory, DirectoryInfo testingFilesDirectory,
+			DirectoryInfo failedTestsDirectory)
+		{
+			var stableDirectories = stableFilesDirectory.GetDirectories();
+			var testingDirectories = testingFilesDirectory.GetDirectories();
+			var failedDirectories = failedTestsDirectory.GetDirectories();
+
+			var distinctList =
+				stableDirectories.Select(d => d.Name)
+					.ToList()
+					.Concat(testingDirectories.Select(d => d.Name).ToList()).Distinct();
+			var passes = (from dir in distinctList
+						  where !failedDirectories.Select(d => d.Name).ToList().Contains(dir)
+						  select dir).ToArray();
+
+			return passes;
 		}
 
 		private List<FileInfo> GetResultImages(DirectoryInfo directoryToSearch)
 		{
+			if (directoryToSearch == null) return new List<FileInfo>();
 			var imageFiles = directoryToSearch.GetFiles(new[] { "*.png", "*.bmp", "*.jpeg", "*.jpg", "*.gif" },
 				SearchOption.TopDirectoryOnly);
 			return imageFiles.ToList();
 		}
 
+
+		private TestArtifact EmptyArtifact()
+		{
+			return new TestArtifact
+			{
+				Name = "",
+				Path = "",
+				RelativePath = ""
+			};
+		}
 
 		/// <summary>
 		/// gets the desctiption of the current artifact file
@@ -205,7 +305,8 @@ namespace VCT.Server
 		/// <returns><see cref="TestArtifact"/> with Name (empty if null), Path (empty if null)</returns>
 		private TestArtifact GetAtrifactDescription(FileInfo artifactFile)
 		{
-			if (artifactFile == null) return new TestArtifact();
+			if (artifactFile == null)
+				return EmptyArtifact();
 
 			return new TestArtifact
 			{
@@ -306,7 +407,10 @@ namespace VCT.Server
 		/// <returns></returns>
 		public HttpResponseMessage SendFilesToClient(DirectoryInfo inputDirectory)
 		{
+			if (inputDirectory == null || !inputDirectory.Exists) return new HttpResponseMessage(HttpStatusCode.NoContent);
+
 			var inputFiles = inputDirectory.GetFiles();
+
 			if (!inputFiles.Any()) return new HttpResponseMessage(HttpStatusCode.NoContent);
 
 			var content = new MultipartContent();
