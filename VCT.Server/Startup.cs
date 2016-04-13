@@ -31,7 +31,7 @@ namespace VCT.Server
 				FileSystem = new PhysicalFileSystem(Config.AppSettings["rootDir"]),
 				RequestPath = new PathString("")
 			};
-			fsOptions.DefaultFilesOptions.DefaultFileNames = new[] {"react_index.html"};
+			fsOptions.DefaultFilesOptions.DefaultFileNames = new[] {"index.html"};
 
 			appBuilder.UseFileServer(fsOptions);
 			appBuilder.UseWebApi(config);
