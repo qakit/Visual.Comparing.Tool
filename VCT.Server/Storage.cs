@@ -30,28 +30,29 @@ namespace VCT.Server
 
 		public DirectoryInfo StableTestDirectory(string testName)
 		{
-			return CreateSubdirectory(StableFilesDirectory, testName);
+			return GetSubdirectory(StableFilesDirectory, testName, false);
 		}
 
 		public DirectoryInfo TestingTestDirectory(string testName)
 		{
-			return CreateSubdirectory(TestingFilesDirectory, testName);
+			return GetSubdirectory(TestingFilesDirectory, testName);
 		}
 
 		public DirectoryInfo DiffTestDirectory(string testName)
 		{
-			return CreateSubdirectory(DiffFilesDirectory, testName);
+			//Diff directory MUST be created at any fail!
+			return GetSubdirectory(DiffFilesDirectory, testName);
 		}
 
 		public DirectoryInfo HistoryTestFilesDirectory(string date)
 		{
-			return CreateSubdirectory(HistoryFilesDirectory, date);
+			return GetSubdirectory(HistoryFilesDirectory, date);
 		}
 
-		private DirectoryInfo CreateSubdirectory(DirectoryInfo parentDirectory, string directoryName)
+		private DirectoryInfo GetSubdirectory(DirectoryInfo parentDirectory, string directoryName, bool createIfNotExists = true)
 		{
 			var subdirectory = new DirectoryInfo(Path.Combine(parentDirectory.FullName, directoryName));
-			if (!subdirectory.Exists) subdirectory.Create();
+			if (!subdirectory.Exists && createIfNotExists) subdirectory.Create();
 			return subdirectory;
 		}
 
@@ -125,7 +126,7 @@ namespace VCT.Server
 
 			TestingFilesDirectory.MoveTo(Path.Combine(historyDirectory.FullName, "TestingFiles"));
 			DiffFilesDirectory.MoveTo(Path.Combine(historyDirectory.FullName, "DiffFiles"));
-			CreateSubdirectory(historyDirectory, "StableFiles");
+			GetSubdirectory(historyDirectory, "StableFiles");
 
 			//after moving folder i need it re-create
 			//P.S. TestingFilesDirectory after moving changes it's ref to another one o_O
