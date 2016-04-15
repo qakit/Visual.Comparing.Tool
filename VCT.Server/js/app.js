@@ -389,7 +389,7 @@ var HistoryContent = React.createClass({
 
 var Page = React.createClass({
     getInitialState: function(){
-        var defaultUrl = "http://localhost:9111/tests/history";
+        var defaultUrl = "/tests/history";
         var fakeData = fakeHistoryData;
         return ({
             url: defaultUrl,
