@@ -271,7 +271,7 @@ var PageContent = React.createClass({
 });
 
 ReactDOM.render(
-    <PageContent url="http://localhost:9111/tests/fails"/>,
+    <PageContent url="/tests/fails"/>,
     document.getElementById('root')
 )
 
