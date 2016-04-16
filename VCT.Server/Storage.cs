@@ -8,11 +8,10 @@ namespace VCT.Server
 	public class Storage
 	{
 		private readonly DirectoryInfo _rootDirectory;
-		private const string HistoryFileName = "suiteInformation.txt";
+		private static readonly string HistoryFileName = Config.AppSettings["history"];
 
 		public Storage()
 		{
-			//TODO: move it to app.config or evaluate from code
 			_rootDirectory = new DirectoryInfo(Config.AppSettings["storage"]);
 			CreateFoldersHierarhy();
 		}
@@ -70,7 +69,7 @@ namespace VCT.Server
 		}
 
 		/// <summary>
-		/// Writes info text to suiteInfo.txt file
+		/// Writes info text to history file
 		/// </summary>
 		/// <param name="infoText">text</param>
 		/// <param name="removeIfExists">do we need to remove previous file if it exists (optional. Default - false)</param>
