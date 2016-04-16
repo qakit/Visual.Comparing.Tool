@@ -4,10 +4,13 @@ Output/*
 .nuget/*
 packages/*/*/
 VCT.Server/bin/*/*
-VCT.Test/bin/*/*
-VCT.Client/bin/*/*
+VCT.Server/Deploy/*/*
 VCT.Server/node_modules/*/*
 VCT.Server/Storage/*/*
+
+VCT.Test/bin/*/*
+VCT.Client/bin/*/*
+
 syntax: glob
 
 *.suo
