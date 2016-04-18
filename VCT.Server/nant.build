@@ -85,7 +85,18 @@
 				<include name="System.Web.dll" />
 				<include name="System.Xml.dll" />
 				<include name="System.Xml.Linq.dll" />
-				<include name="${deploy.dir}/*.dll" />
+
+				<include name="${deploy.dir}/Microsoft.Owin.dll" />
+				<include name="${deploy.dir}/Microsoft.Owin.FileSystems.dll" />
+				<include name="${deploy.dir}/Microsoft.Owin.Host.HttpListener.dll" />
+				<include name="${deploy.dir}/Microsoft.Owin.Hosting.dll" />
+				<include name="${deploy.dir}/Microsoft.Owin.StaticFiles.dll" />
+				<include name="${deploy.dir}/Newtonsoft.Json.dll" />
+				<include name="${deploy.dir}/Owin.dll" />
+				<include name="${deploy.dir}/System.Net.Http.dll" />
+				<include name="${deploy.dir}/System.Net.Http.Formatting.dll" />
+				<include name="${deploy.dir}/System.Web.Http.dll" />
+				<include name="${deploy.dir}/System.Web.Http.Owin.dll" />
 			</references>
 
 		</csc>
