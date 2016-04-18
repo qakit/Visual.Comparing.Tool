@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <project xmlns="http://nant.sf.net/schemas/nant-0.85.xsd" name="build" default="client">
 
-	<property name="root.dir" value="${project::get-base-directory()}"/>
-	<property name="srv.dir" value="${root.dir}/VCT.Server"/>
-	<property name="srv.tempNuget" value="${srv.dir}/Packages"/>
-	<property name="srv.deploy.dir" value="${srv.dir}/Deploy"/>
+	<property name="root.dir"		value="${project::get-base-directory()}"/>
 
-	<property name="srv.name" value="VCT.Server.exe"/>
-	<property name="srv.path" value="${srv.deploy.dir}/${srv.name}"/>
+	<property name="srv.dir"		value="${root.dir}/VCT.Server"/>
+	<property name="srv.tempNuget"	value="${srv.dir}/Packages"/>
+	<property name="srv.deploy.dir"	value="${srv.dir}/Deploy"/>
+	<property name="srv.name"		value="VCT.Server.exe"/>
+	<property name="srv.path"		value="${srv.deploy.dir}/${srv.name}"/>
 
 
 	<target name="nuget" description="Call nuget to pull down server dependencies">
@@ -36,20 +36,11 @@
 		
 	</target>
 
-	<target name="aux" description="Gets auxiliary files which needed for server">
-
-		<copy file="${root.dir}/Libs/System.Net.Http.dll" tofile="${srv.deploy.dir}/System.Net.Http.dll"/>
-		<copy file="${srv.dir}/App.config" tofile="${srv.deploy.dir}/${srv.name}.config"/>
-
-	</target>
-
-
 	<target name="server" depends="backend, frontend">
 		<echo message="[!!!] Don't forget to tune ${srv.path}.config [!!!]" />
 	</target>
 
 	<target name="frontend">
-
 		<copy todir="${srv.deploy.dir}">
 			<fileset>
 				<include name="${srv.dir}/js/**/*.js" />
@@ -59,11 +50,12 @@
 				<include name="${srv.dir}/*.js" />
 			</fileset>
 		</copy>
-
 	</target>
 
+	<target name="backend" depends="nuget">
 
-	<target name="backend" depends="nuget, aux">
+		<copy file="${root.dir}/Libs/System.Net.Http.dll"	tofile="${srv.deploy.dir}/System.Net.Http.dll"/>
+		<copy file="${srv.dir}/App.config"					tofile="${srv.deploy.dir}/${srv.name}.config"/>
 
 		<echo message="Building '${srv.path}'" />
 
@@ -101,12 +93,12 @@
 
 		</csc>
 	</target>
-	
+
 	<target name="client" depends="server">
 		
-		<property name="cli.dir" value="${root.dir}/VCT.Client"/>
-		<property name="cli.deploy.dir" value="${cli.dir}/Deploy"/>
-		<property name="cli.name" value="VCT.Client.dll"/>
+		<property name="cli.dir"		value="${root.dir}/VCT.Client"/>
+		<property name="cli.deploy.dir"	value="${cli.dir}/Deploy"/>
+		<property name="cli.name"		value="VCT.Client.dll"/>
 		
 		<!--here we just reuse some dll from server-->
 		<copy file="${srv.deploy.dir}/System.Net.Http.dll" tofile="${cli.deploy.dir}/System.Net.Http.dll"/>
@@ -134,4 +126,5 @@
 			</references>
 		</csc>
 	</target>
+
 </project>
