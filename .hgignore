@@ -2,9 +2,9 @@ syntax: regexp
 
 Output/*
 .nuget/*
+Deploy/*/*
 packages/*/*/
 VCT.Server/bin/*/*
-VCT.Server/Deploy/*/*
 VCT.Server/node_modules/*/*
 VCT.Server/Storage/*/*
 
