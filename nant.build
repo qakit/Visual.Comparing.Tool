@@ -1,24 +1,22 @@
 <?xml version="1.0"?>
-<project xmlns="http://nant.sf.net/schemas/nant-0.85.xsd" name="build" default="build">
+<project xmlns="http://nant.sf.net/schemas/nant-0.85.xsd" name="build" default="client">
 
-	<property name="vct.dir" value="${project::get-base-directory()}"/>
-	<property name="srv.dir" value="${vct.dir}/VCT.Server"/>
+	<property name="root.dir" value="${project::get-base-directory()}"/>
+	<property name="srv.dir" value="${root.dir}/VCT.Server"/>
 	<property name="srv.tempNuget" value="${srv.dir}/Packages"/>
-	<property name="deploy.dir" value="${srv.dir}/Deploy"/>
+	<property name="srv.deploy.dir" value="${srv.dir}/Deploy"/>
 
-	
-	<property name="app.name" value="VCT.Server.exe"/>
-	<property name="app.path" value="${deploy.dir}/${app.name}"/>
-
+	<property name="srv.name" value="VCT.Server.exe"/>
+	<property name="srv.path" value="${srv.deploy.dir}/${srv.name}"/>
 
 
 	<target name="nuget" description="Call nuget to pull down server dependencies">
 
 		<!--prepare-->
-		<delete dir="${deploy.dir}" if="${directory::exists(deploy.dir)}"/>
+		<delete dir="${srv.deploy.dir}" if="${directory::exists(srv.deploy.dir)}"/>
 
 		<!--main part-->
-		<exec program="${vct.dir}/.nuget/NuGet.exe">
+		<exec program="${root.dir}/.nuget/NuGet.exe">
 			<arg value="install" />
 			<arg value="${srv.dir}/packages.config" />
 			<arg value="-OutputDirectory" />
@@ -26,7 +24,7 @@
 		</exec>
 
 		<!--Choose only necessary libs-->
-		<copy todir="${deploy.dir}" flatten="true">
+		<copy todir="${srv.deploy.dir}" flatten="true">
 			<fileset>
 				<include name="${srv.tempNuget}/**/net45/*.dll" />
 				<include name="${srv.tempNuget}/Owin.1.0/lib/net40/Owin.dll" />
@@ -40,23 +38,23 @@
 
 	<target name="aux" description="Gets auxiliary files which needed for server">
 
-		<copy file="${vct.dir}/Libs/System.Net.Http.dll" tofile="${deploy.dir}/System.Net.Http.dll"/>
-		<copy file="${srv.dir}/App.config" tofile="${deploy.dir}/${app.name}.config"/>
+		<copy file="${root.dir}/Libs/System.Net.Http.dll" tofile="${srv.deploy.dir}/System.Net.Http.dll"/>
+		<copy file="${srv.dir}/App.config" tofile="${srv.deploy.dir}/${srv.name}.config"/>
 
 	</target>
 
-	
-	<target name="build" depends="server, frontend">
-		<echo message="[!!!] Don't forget to tune ${app.name}.config [!!!]" />
+
+	<target name="server" depends="backend, frontend">
+		<echo message="[!!!] Don't forget to tune ${srv.path}.config [!!!]" />
 	</target>
 
 	<target name="frontend">
 
-		<copy todir="${deploy.dir}">
+		<copy todir="${srv.deploy.dir}">
 			<fileset>
 				<include name="${srv.dir}/js/**/*.js" />
 				<include name="${srv.dir}/images/*.png" />
-				<include name="${vct.dir}/favicon.ico" />
+				<include name="${root.dir}/favicon.ico" />
 				<include name="${srv.dir}/*.html" />
 				<include name="${srv.dir}/*.js" />
 			</fileset>
@@ -65,11 +63,11 @@
 	</target>
 
 
-	<target name="server" depends="nuget, aux">
+	<target name="backend" depends="nuget, aux">
 
-		<echo message="Building '${app.path}'" />
+		<echo message="Building '${srv.path}'" />
 
-		<csc target="exe" output="${app.path}" win32icon="${vct.dir}/favicon.ico"
+		<csc target="exe" output="${srv.path}" win32icon="${root.dir}/favicon.ico"
 			warnaserror="false" noconfig="true" warninglevel="0" unsafe="true">
 
 			<sources failonempty="true" basedir="${srv.dir}">
@@ -88,19 +86,52 @@
 				<include name="System.Xml.dll" />
 				<include name="System.Xml.Linq.dll" />
 
-				<include name="${deploy.dir}/Microsoft.Owin.dll" />
-				<include name="${deploy.dir}/Microsoft.Owin.FileSystems.dll" />
-				<include name="${deploy.dir}/Microsoft.Owin.Host.HttpListener.dll" />
-				<include name="${deploy.dir}/Microsoft.Owin.Hosting.dll" />
-				<include name="${deploy.dir}/Microsoft.Owin.StaticFiles.dll" />
-				<include name="${deploy.dir}/Newtonsoft.Json.dll" />
-				<include name="${deploy.dir}/Owin.dll" />
-				<include name="${deploy.dir}/System.Net.Http.dll" />
-				<include name="${deploy.dir}/System.Net.Http.Formatting.dll" />
-				<include name="${deploy.dir}/System.Web.Http.dll" />
-				<include name="${deploy.dir}/System.Web.Http.Owin.dll" />
+				<include name="${srv.deploy.dir}/Microsoft.Owin.dll" />
+				<include name="${srv.deploy.dir}/Microsoft.Owin.FileSystems.dll" />
+				<include name="${srv.deploy.dir}/Microsoft.Owin.Host.HttpListener.dll" />
+				<include name="${srv.deploy.dir}/Microsoft.Owin.Hosting.dll" />
+				<include name="${srv.deploy.dir}/Microsoft.Owin.StaticFiles.dll" />
+				<include name="${srv.deploy.dir}/Newtonsoft.Json.dll" />
+				<include name="${srv.deploy.dir}/Owin.dll" />
+				<include name="${srv.deploy.dir}/System.Net.Http.dll" />
+				<include name="${srv.deploy.dir}/System.Net.Http.Formatting.dll" />
+				<include name="${srv.deploy.dir}/System.Web.Http.dll" />
+				<include name="${srv.deploy.dir}/System.Web.Http.Owin.dll" />
 			</references>
 
+		</csc>
+	</target>
+	
+	<target name="client" depends="server">
+		
+		<property name="cli.dir" value="${root.dir}/VCT.Client"/>
+		<property name="cli.deploy.dir" value="${cli.dir}/Deploy"/>
+		<property name="cli.name" value="VCT.Client.dll"/>
+		
+		<!--here we just reuse some dll from server-->
+		<copy file="${srv.deploy.dir}/System.Net.Http.dll" tofile="${cli.deploy.dir}/System.Net.Http.dll"/>
+		<copy file="${srv.deploy.dir}/System.Net.Http.Formatting.dll" tofile="${cli.deploy.dir}/System.Net.Http.Formatting.dll"/>
+		
+		<csc target="library" output="${cli.deploy.dir}\${cli.name}"
+			warnaserror="false" noconfig="true" warninglevel="0" unsafe="true">
+
+			<sources failonempty="true" basedir="${cli.dir}">
+				<include name="**/*.cs"/>
+				<include name="*.cs"/>
+			</sources>
+
+			<references>
+				<include name="Microsoft.CSharp" />
+				<include name="System.dll" />
+				<include name="System.Core.dll" />
+				<include name="System.Data.dll" />
+				<include name="System.Data.DataSetExtensions.dll" />
+				<include name="System.Xml.dll" />
+				<include name="System.Xml.Linq.dll" />
+
+				<include name="${cli.deploy.dir}/System.Net.Http.dll" />
+				<include name="${cli.deploy.dir}/System.Net.Http.Formatting.dll" />
+			</references>
 		</csc>
 	</target>
 </project>
