@@ -38,13 +38,7 @@
 
 	<target name="aux" description="Gets auxiliary files which needed for server">
 
-		<copy todir="${deploy.dir}">
-			<fileset>
-				<!--need to use this hack for nant-0.91-->
-				<include name="${environment::get-folder-path('ProgramFiles')}/Reference Assemblies/Microsoft/Framework/.NETFramework/v4.5/System.Net.Http.dll" />
-			</fileset>
-		</copy>
-
+		<copy file="${vct.dir}/Libs/System.Net.Http.dll" tofile="${deploy.dir}/System.Net.Http.dll"/>
 		<copy file="${srv.dir}/App.config" tofile="${deploy.dir}/${app.name}.config"/>
 
 	</target>
