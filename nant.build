@@ -41,15 +41,17 @@
 	</target>
 
 	<target name="frontend">
+
 		<copy todir="${srv.deploy.dir}">
-			<fileset>
-				<include name="${srv.dir}/js/**/*.js" />
-				<include name="${srv.dir}/images/*.png" />
-				<include name="${root.dir}/favicon.ico" />
-				<include name="${srv.dir}/*.html" />
-				<include name="${srv.dir}/*.js" />
+			<fileset basedir="${srv.dir}">
+				<include name="js/**/*.js" />
+				<include name="images/*.png" />
+				<include name="*.html" />
+				<include name="*.js" />
 			</fileset>
 		</copy>
+
+		<copy file="${root.dir}/favicon.ico" tofile="${srv.deploy.dir}/favicon.ico"/>
 	</target>
 
 	<target name="backend" depends="nuget">
