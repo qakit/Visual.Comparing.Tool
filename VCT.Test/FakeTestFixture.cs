@@ -29,12 +29,12 @@ namespace VCT.Test
 		{
 			var outputScreen = NewFile(@"C:\projects\VCT\Output\Google\google.png");
 			var outputScreen2 = NewFile(@"C:\projects\VCT\Output\Google\google2.png");
-			var framework = TestCore.Instance;
+
 
 			driver.Manage().Window.Maximize();
 			driver.Navigate().GoToUrl("http://www.google.com/");
-			var equal = framework.IsPageScreensAreEqual(driver, outputScreen, TestContext.CurrentContext.Test.FullName);
-			var equal2 = framework.IsPageScreensAreEqual(driver, outputScreen2, TestContext.CurrentContext.Test.FullName);
+			var equal = TestCore.IsPageScreensAreEqual(driver, outputScreen, TestContext.CurrentContext.Test.FullName);
+			var equal2 = TestCore.IsPageScreensAreEqual(driver, outputScreen2, TestContext.CurrentContext.Test.FullName);
 
 			Assert.IsTrue(equal);
 		}
@@ -43,11 +43,11 @@ namespace VCT.Test
 		public void VKTest()
 		{
 			var outputScreen = NewFile(@"C:\projects\VCT\Output\VK\vk.png");
-			var framework = TestCore.Instance;
+
 
 			driver.Manage().Window.Maximize();
 			driver.Navigate().GoToUrl("https://vk.com");
-			var equal = framework.IsPageScreensAreEqual(driver, outputScreen, TestContext.CurrentContext.Test.FullName);
+			var equal = TestCore.IsPageScreensAreEqual(driver, outputScreen, TestContext.CurrentContext.Test.FullName);
 			
 			Assert.IsTrue(equal);
 		}
@@ -56,11 +56,10 @@ namespace VCT.Test
 		public void YandexTest()
 		{
 			var outputScreen = NewFile(@"C:\projects\VCT\Output\Yandex\yandex.png");
-			var framework = TestCore.Instance;
 
 			driver.Manage().Window.Maximize();
 			driver.Navigate().GoToUrl("https://yandex.ru");
-			var equal = framework.IsPageScreensAreEqual(driver, outputScreen, TestContext.CurrentContext.Test.FullName);
+			var equal = TestCore.IsPageScreensAreEqual(driver, outputScreen, TestContext.CurrentContext.Test.FullName);
 
 			Assert.IsTrue(equal);
 		}
