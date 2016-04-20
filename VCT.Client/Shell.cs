@@ -12,7 +12,7 @@ namespace VCT.Client
 	{
 		private static string _baseServerAddress = "http://localhost:9111/";
 
-		public string ServerAddress
+		public static string ServerAddress
 		{
 			get { return _baseServerAddress; }
 			set
@@ -24,7 +24,7 @@ namespace VCT.Client
 
 		#region singleton
 
-		private static readonly Shell Singleton = new Shell();
+		private static Shell _singleton;
 
 		private Shell()
 		{
@@ -39,7 +39,7 @@ namespace VCT.Client
 
 		public static Shell Do
 		{
-			get { return Singleton; }
+			get { return _singleton ?? (_singleton = new Shell()); }
 		}
 
 		#endregion
@@ -47,7 +47,7 @@ namespace VCT.Client
 		public void Push(DirectoryInfo dir, string nameOfTest, TestTypes type)
 		{
 			var restUrl = string.Format("{0}/tests/{1}/{2}", ServerAddress, nameOfTest, type);
-			SaveFilesToServer(dir, restUrl);
+			SendFilesToServer(dir, restUrl);
 		}
 
 		public bool Pull(DirectoryInfo dir, string nameOfTest, TestTypes type)
@@ -63,7 +63,7 @@ namespace VCT.Client
 		/// </summary>
 		/// <param name="testingFilesDirectory">Directory in which testing files are placed</param>
 		/// <param name="testName">Unique test name (will be used to search for files/folders on server)</param>
-		public void SaveTestingFiles(DirectoryInfo testingFilesDirectory, string testName)
+		public void SendTestingFiles(DirectoryInfo testingFilesDirectory, string testName)
 		{
 			Push(testingFilesDirectory, testName, TestTypes.testing);
 		}
@@ -84,7 +84,7 @@ namespace VCT.Client
 		/// </summary>
 		/// <param name="stableFilesDirectory">Directory in which stable files are placed</param>
 		/// <param name="testName">Unique test name (will be used to search for files/folders on server)</param>
-		public void SaveStableFiles(DirectoryInfo stableFilesDirectory, string testName)
+		public void SendStableFiles(DirectoryInfo stableFilesDirectory, string testName)
 		{
 			Push(stableFilesDirectory, testName, TestTypes.stable);
 			//TODO save all stable files from stable directory to server (with removing old stable files);
@@ -111,7 +111,7 @@ namespace VCT.Client
 		/// </summary>
 		/// <param name="diffFilesDirectory">Directory in which diff files are placed</param>
 		/// <param name="testName">Unique test name (will be used to search for files/folders on server)</param>
-		public void SaveDiffFiles(DirectoryInfo diffFilesDirectory, string testName)
+		public void SendDiffFiles(DirectoryInfo diffFilesDirectory, string testName)
 		{
 			Push(diffFilesDirectory, testName, TestTypes.diff);
 			//TODO save all diff files from diff files folder to server (with removing old diff files first)
@@ -175,7 +175,7 @@ namespace VCT.Client
 		/// </summary>
 		/// <param name="dir">Basic input directory</param>
 		/// <param name="url">RestAPI url</param>
-		private static void SaveFilesToServer(DirectoryInfo dir, string url)
+		private static void SendFilesToServer(DirectoryInfo dir, string url)
 		{
 			using (var httpClient = new HttpClient())
 			{
