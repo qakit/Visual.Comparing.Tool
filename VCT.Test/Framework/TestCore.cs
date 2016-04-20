@@ -1,4 +1,5 @@
 using System;
+using System.Configuration;
 using System.IO;
 using OpenQA.Selenium.Remote;
 
@@ -20,7 +21,7 @@ namespace VCT.Test.Framework
 
 			
 			//Save testing files anyway
-			Client.Shell.Do.SaveTestingFiles(outputScreenFile.Directory, testName);
+			Client.Shell.Do.SendTestingFiles(outputScreenFile.Directory, testName);
 
 			//get stable files and
 			//if there are not stable files for test we need generate diff directory and create it on server side with testing files;
@@ -29,14 +30,14 @@ namespace VCT.Test.Framework
 			{
 				if (!diffDirectory.Exists) diffDirectory.Create();
 
-				Client.Shell.Do.SaveDiffFiles(diffDirectory, testName);
+				Client.Shell.Do.SendDiffFiles(diffDirectory, testName);
 				return false;
 			}
 
 			var equal = CompareScreenshots(outputScreenFile, stableDirectory, diffDirectory);
 			if (!equal)
 			{
-				Client.Shell.Do.SaveDiffFiles(diffDirectory, testName);
+				Client.Shell.Do.SendDiffFiles(diffDirectory, testName);
 			}
 			return equal;
 		}

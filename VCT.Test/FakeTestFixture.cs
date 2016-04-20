@@ -27,8 +27,12 @@ namespace VCT.Test
 		[Test]
 		public void GoogleTest()
 		{
+
+			//Client.Shell.ServerAddress = @"http://10.98.4.67:80";
+
 			var outputScreen = NewFile(@"C:\projects\VCT\Output\Google\google.png");
 			var outputScreen2 = NewFile(@"C:\projects\VCT\Output\Google\google2.png");
+
 
 
 			driver.Manage().Window.Maximize();
