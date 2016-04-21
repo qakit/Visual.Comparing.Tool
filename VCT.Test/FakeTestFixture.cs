@@ -35,7 +35,7 @@ namespace VCT.Test
 
 
 
-			driver.Manage().Window.Maximize();
+			//driver.Manage().Window.Maximize();
 			driver.Navigate().GoToUrl("http://www.google.com/");
 			var equal = TestCore.IsPageScreensAreEqual(driver, outputScreen, TestContext.CurrentContext.Test.FullName);
 			var equal2 = TestCore.IsPageScreensAreEqual(driver, outputScreen2, TestContext.CurrentContext.Test.FullName);
@@ -49,7 +49,7 @@ namespace VCT.Test
 			var outputScreen = NewFile(@"C:\projects\VCT\Output\VK\vk.png");
 
 
-			driver.Manage().Window.Maximize();
+			//driver.Manage().Window.Maximize();
 			driver.Navigate().GoToUrl("https://vk.com");
 			var equal = TestCore.IsPageScreensAreEqual(driver, outputScreen, TestContext.CurrentContext.Test.FullName);
 			
@@ -61,7 +61,7 @@ namespace VCT.Test
 		{
 			var outputScreen = NewFile(@"C:\projects\VCT\Output\Yandex\yandex.png");
 
-			driver.Manage().Window.Maximize();
+			//driver.Manage().Window.Maximize();
 			driver.Navigate().GoToUrl("https://yandex.ru");
 			var equal = TestCore.IsPageScreensAreEqual(driver, outputScreen, TestContext.CurrentContext.Test.FullName);
 
