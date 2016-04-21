@@ -20,6 +20,9 @@ namespace VCT.Server
 	{
 		public static string LocalStorage = Config.AppSettings["storage"];
 
+		//private static DirectoryInfo CurrentSessionDir;
+		private Storage Storage = new Storage();
+
 		[HttpGet]
 		[Route("")]
 		public string GetAllTests()
@@ -31,84 +34,71 @@ namespace VCT.Server
 		[Route("{testId}/stable")]
 		public HttpResponseMessage GetStable(string testId)
 		{
-			var storage = new Storage();
-			return SendFilesToClient(storage.StableTestDirectory(testId));
+			return SendFilesToClient(Storage.Current.StableTestDirectory(testId));
 		}
 
 		[HttpGet]
 		[Route("{testId}/testing")]
 		public HttpResponseMessage GetTesting(string testId)
 		{
-			var storage = new Storage();
-			return SendFilesToClient(storage.TestingTestDirectory(testId));
+			return SendFilesToClient(Storage.Current.TestingTestDirectory(testId));
 		}
 
 		[HttpGet]
 		[Route("{testId}/diff")]
 		public HttpResponseMessage GetDiff(string testId)
 		{
-			var storage = new Storage();
-			return SendFilesToClient(storage.DiffTestDirectory(testId));
+			return SendFilesToClient(Storage.Current.DiffTestDirectory(testId));
 		}
 
 		[HttpPost]
 		[Route("{testId}/stable")]
 		public Task<IHttpActionResult> PostStable(string testId)
 		{
-			var storage = new Storage();
 			if (!Request.Content.IsMimeMultipartContent("form-data"))
 			{
 				//if request doesn't contain any data just copy testing files to stable files (accept fail)
-				storage.DiffTestDirectory(testId).ClearContent();
-				return UpdateFilesForTest(storage.TestingTestDirectory(testId), storage.StableTestDirectory(testId));
+				Storage.Current.DiffTestDirectory(testId).ClearContent();
+				return UpdateFilesForTest(Storage.Current.TestingTestDirectory(testId), Storage.Current.StableTestDirectory(testId));
 			}
-			return GetFilesFromClient(storage.StableTestDirectory(testId));
+			return GetFilesFromClient(Storage.Current.StableTestDirectory(testId));
 		}
 
 		[HttpPost]
 		[Route("{testId}/testing")]
 		public Task<IHttpActionResult> PostTesting(string testId)
 		{
-			var storage = new Storage();
-			return GetFilesFromClient(storage.TestingTestDirectory(testId));
+			return GetFilesFromClient(Storage.Current.TestingTestDirectory(testId));
 		}
 
 		[HttpPost]
 		[Route("{testId}/diff")]
 		public Task<IHttpActionResult> PostDiff(string testId)
 		{
-			var storage = new Storage();
-			return GetFilesFromClient(storage.DiffTestDirectory(testId));
+			return GetFilesFromClient(Storage.Current.DiffTestDirectory(testId));
 		}
+
 
 		[HttpPost]
 		[Route("suite/start")]
 		public void SuiteStart()
 		{
-			//TODO move all previous content to history folder with datetime name
-			//write started time to txt file
-			var storage = new Storage();
-			Console.WriteLine("Backup previous data");
-			storage.BackUpPreviousRunForHistory();
-			Console.WriteLine("Write new info");
-			try
-			{
-				storage.WriteHistoryInfo(string.Format("started|{0}", DateTime.Now.ToString("dd.mm.yyyy_hh.mm.ss")), true);
-			}
-			catch (Exception e)
-			{
-				Console.WriteLine(e.Message);
-			}
-			Console.WriteLine("Suite started at {0}", DateTime.Now.ToString("dd.mm.yyyy_hh.mm.ss"));
+			string inceptionTime = DateTime.Now.ToString("dd.mm.yyyy_hh.mm.ss");
+
+			Storage.Allocate(inceptionTime);
+
+			try { Storage.WriteHistoryInfo(string.Format("started|{0}", inceptionTime), true); }
+			catch (Exception e) { Console.WriteLine(e.Message); }
+
+			Console.WriteLine("Suite started at {0}", inceptionTime);
 		}
 
 		[HttpPost]
 		[Route("suite/stop")]
 		public void SuiteStop()
 		{
-			//TODO write end time to txt file
-			var storage = new Storage();
-			storage.WriteHistoryInfo(string.Format("completed|{0}", DateTime.Now.ToString("dd.mm.yyyy_hh.mm.ss")));
+			Storage.WriteHistoryInfo(string.Format("completed|{0}", DateTime.Now.ToString("dd.mm.yyyy_hh.mm.ss")));
+
 			Console.WriteLine("Suite stopped at {0}", DateTime.Now.ToString("dd.mm.yyyy_hh.mm.ss"));
 		}
 
@@ -116,35 +106,17 @@ namespace VCT.Server
 		[Route("history")]
 		public JsonResult<List<HistoryResult>> GetHistory()
 		{
-			//get history for all directories in History folder
-			//include in result current fails
-			var storage = new Storage();
 			List<HistoryResult> historyResults = new List<HistoryResult>();
-
-			var currentFails = GetTestResults(storage.DiffFilesDirectory, storage.StableFilesDirectory,
-				storage.TestingFilesDirectory);
-
-			historyResults.Add(new HistoryResult
-			{
-				DateCompleted = "DateCompleted Current",
-				DateStarted = "DateStarted Current",
-				Failed = currentFails.Count,
-				Passed = GetPassedTests().Length,
-				Id = 0,
-				Tests = currentFails
-			});
 
 			int id = 1;
 
-			foreach (DirectoryInfo historyDirectory in storage.HistoryFilesDirectory.GetDirectories())
+			foreach (DirectoryInfo session in Storage.Root.GetDirectories().OrderBy(p => p.CreationTime))
 			{
-				var historyStableDirectory = new DirectoryInfo(Path.Combine(historyDirectory.FullName, "StableFiles"));
-				var historyTestingDirectory = new DirectoryInfo(Path.Combine(historyDirectory.FullName, "TestingFiles"));
-				var historyDiffDirectory = new DirectoryInfo(Path.Combine(historyDirectory.FullName, "DiffFiles"));
+				var hub = new Storage.Hub(session);
 
-				var tests = GetTestResults(historyDiffDirectory, historyStableDirectory, historyTestingDirectory);
-				var passed = GetPassedTests(historyStableDirectory, historyTestingDirectory, historyDiffDirectory).Length;
-				var failed = tests.Count;
+				var resultsWhatewerItMeans = GetTestResults(hub.stable, hub.testing, hub.diff);
+				var passed = GetPassedTests(hub.stable, hub.testing, hub.diff).Length;
+				var failed = resultsWhatewerItMeans.Count;
 
 				historyResults.Add(new HistoryResult
 				{
@@ -153,11 +125,29 @@ namespace VCT.Server
 					Failed = failed,
 					Passed = passed,
 					Id = id,
-					Tests = tests
+					Tests = resultsWhatewerItMeans
 				});
 
 				id++;
 			}
+
+			//TODO: burn it out
+			#region 
+
+			var currentFails = GetTestResults(Storage.Current.stable, Storage.Current.testing, Storage.Current.diff);
+
+			
+			historyResults.Add(new HistoryResult
+				{
+					DateCompleted = "DateCompleted Current",
+					DateStarted = "DateStarted Current",
+					Failed = currentFails.Count,
+					Passed = GetPassedTests().Length,
+					Id = 0, //Last, not zero
+					Tests = currentFails
+				});
+
+			#endregion
 
 			return Json(historyResults);
 		}
@@ -166,15 +156,13 @@ namespace VCT.Server
 		[Route("fails")]
 		public JsonResult<List<TestResult>> GetFails()
 		{
-			var storage = new Storage();
-			var testsResults = GetTestResults(storage.DiffFilesDirectory, storage.StableFilesDirectory,
-				storage.TestingFilesDirectory);
+			//What da Hell! test is fails? fails is tests? naming sucks
+			var testsResults = GetTestResults(Storage.Current.stable, Storage.Current.testing, Storage.Current.diff);
 
 			return Json(testsResults);
 		}
 
-		private List<TestResult> GetTestResults(DirectoryInfo diffFilesDirectory, DirectoryInfo stableFilesDirectory,
-			DirectoryInfo testingFilesDirectory)
+		private List<TestResult> GetTestResults(DirectoryInfo stableFilesDirectory, DirectoryInfo testingFilesDirectory, DirectoryInfo diffFilesDirectory)
 		{
 			var testsResults = new List<TestResult>();
 
@@ -254,10 +242,7 @@ namespace VCT.Server
 		[Route("passes")]
 		public string[] GetPassedTests()
 		{
-			var storage = new Storage();
-
-			var passedTests = GetPassedTests(storage.StableFilesDirectory, storage.TestingFilesDirectory,
-				storage.DiffFilesDirectory);
+			var passedTests = GetPassedTests(Storage.Current.stable, Storage.Current.testing, Storage.Current.diff);
 			return passedTests;
 		}
 
@@ -394,7 +379,7 @@ namespace VCT.Server
 			{
 				return BadRequest("Unsupported media type");
 			}
-
+			if (!outputDirectory.Exists) outputDirectory.Create();
 			var multiPartFormDataStreamProvider = new UploadMultipartFormProvider(outputDirectory.FullName);
 			await Request.Content.ReadAsMultipartAsync(multiPartFormDataStreamProvider);
 			return Ok(new { Message = string.Format("All files have been uploaded successfully to {0} directory", outputDirectory.FullName) });
