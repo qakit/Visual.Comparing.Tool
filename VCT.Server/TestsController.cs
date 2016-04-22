@@ -19,6 +19,8 @@ namespace VCT.Server
 	public class TestsController : ApiController
 	{
 		public static string LocalStorage = Config.AppSettings["storage"];
+		static readonly string DateFormat = Config.AppSettings["dateFormat"];
+
 
 		//private static DirectoryInfo CurrentSessionDir;
 		private Storage Storage = new Storage();
@@ -83,7 +85,7 @@ namespace VCT.Server
 		[Route("suite/start")]
 		public void SuiteStart()
 		{
-			string inceptionTime = DateTime.Now.ToString("dd.mm.yyyy_hh.mm.ss");
+			string inceptionTime = DateTime.Now.ToString(DateFormat);
 
 			Storage.Allocate(inceptionTime);
 
@@ -97,9 +99,9 @@ namespace VCT.Server
 		[Route("suite/stop")]
 		public void SuiteStop()
 		{
-			Storage.WriteHistoryInfo(string.Format("completed|{0}", DateTime.Now.ToString("dd.mm.yyyy_hh.mm.ss")));
-
-			Console.WriteLine("Suite stopped at {0}", DateTime.Now.ToString("dd.mm.yyyy_hh.mm.ss"));
+			string finishTime = DateTime.Now.ToString(DateFormat);
+			Storage.WriteHistoryInfo(string.Format("completed|{0}", finishTime));
+			Console.WriteLine("Suite stopped at {0}", finishTime);
 		}
 
 		[HttpGet]
@@ -108,20 +110,21 @@ namespace VCT.Server
 		{
 			List<HistoryResult> historyResults = new List<HistoryResult>();
 
-			int id = 1;
+			int id = 0;
 
-			foreach (DirectoryInfo session in Storage.Root.GetDirectories().OrderBy(p => p.CreationTime))
+			foreach (DirectoryInfo session in 
+				Storage.Root.GetDirectories().OrderBy(p => p.CreationTime).Reverse())
 			{
 				var hub = new Storage.Hub(session);
-
+				
 				var resultsWhatewerItMeans = GetTestResults(hub.stable, hub.testing, hub.diff);
 				var passed = GetPassedTests(hub.stable, hub.testing, hub.diff).Length;
 				var failed = resultsWhatewerItMeans.Count;
 
 				historyResults.Add(new HistoryResult
 				{
-					DateCompleted = "DateCompleted",
-					DateStarted = "DateStarted",
+					DateStarted = hub.root.CreationTime.ToShortTimeString(),
+					DateCompleted = "[ TODO ]",
 					Failed = failed,
 					Passed = passed,
 					Id = id,
@@ -130,24 +133,6 @@ namespace VCT.Server
 
 				id++;
 			}
-
-			//TODO: burn it out
-			#region 
-
-			var currentFails = GetTestResults(Storage.Current.stable, Storage.Current.testing, Storage.Current.diff);
-
-			
-			historyResults.Add(new HistoryResult
-				{
-					DateCompleted = "DateCompleted Current",
-					DateStarted = "DateStarted Current",
-					Failed = currentFails.Count,
-					Passed = GetPassedTests().Length,
-					Id = 0, //Last, not zero
-					Tests = currentFails
-				});
-
-			#endregion
 
 			return Json(historyResults);
 		}
