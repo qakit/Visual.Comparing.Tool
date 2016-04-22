@@ -10,7 +10,8 @@ namespace VCT.Server
 	{
 		public readonly DirectoryInfo Root;
 		public static Hub Current;
-		private static readonly string HistoryFileName = Config.AppSettings["history"];
+
+		static readonly string HistoryFileName = Config.AppSettings["history"];
 
 		public Storage()
 		{
@@ -41,6 +42,7 @@ namespace VCT.Server
 			public DirectoryInfo stable { get { return _stable; } }
 			public DirectoryInfo testing { get { return _testing; } }
 			public DirectoryInfo diff { get { return _diff; } }
+
 
 			#region old wrapers
 
