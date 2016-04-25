@@ -1,5 +1,6 @@
 using System;
 using System.Configuration;
+using System.Diagnostics;
 using System.IO;
 using OpenQA.Selenium.Remote;
 
@@ -16,8 +17,9 @@ namespace VCT.Test.Framework
 		{
 			var screenshotMaker = new ScreenshotMaker(driver);
 			screenshotMaker.MakeFullScreenshot(outputScreenFile);
-			var stableDirectory = new DirectoryInfo(Path.Combine(outputScreenFile.Directory.FullName, Stable));
-			var diffDirectory = new DirectoryInfo(Path.Combine(outputScreenFile.Directory.FullName, Diff));
+
+			DirectoryInfo stableDirectory = outputScreenFile.Directory.CreateSubdirectory("Stable");
+			DirectoryInfo diffDirectory = outputScreenFile.Directory.CreateSubdirectory("Diff");
 
 			
 			//Save testing files anyway
@@ -28,8 +30,6 @@ namespace VCT.Test.Framework
 			var success = Client.Shell.Do.GetStableFiles(stableDirectory, testName);
 			if (!success)
 			{
-				if (!diffDirectory.Exists) diffDirectory.Create();
-
 				Client.Shell.Do.SendDiffFiles(diffDirectory, testName);
 				return false;
 			}
