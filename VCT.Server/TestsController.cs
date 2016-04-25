@@ -106,29 +106,28 @@ namespace VCT.Server
 
 		[HttpGet]
 		[Route("history")]
-		public JsonResult<List<HistoryResult>> GetHistory()
+		public JsonResult<List<History>> GetHistory()
 		{
-			List<HistoryResult> historyResults = new List<HistoryResult>();
+			List<History> historyResults = new List<History>();
 
 			int id = 0;
 
 			foreach (DirectoryInfo session in 
 				Storage.Root.GetDirectories().OrderBy(p => p.CreationTime).Reverse())
 			{
-				var hub = new Storage.Hub(session);
+				var sessionHub = new Storage.Hub(session);
 				
-				var resultsWhatewerItMeans = GetTestResults(hub.stable, hub.testing, hub.diff);
-				var passed = GetPassedTests(hub.stable, hub.testing, hub.diff).Length;
-				var failed = resultsWhatewerItMeans.Count;
+				var failed = GetTestResults(sessionHub);
+				var passed = GetPassedTests(sessionHub).Length;
 
-				historyResults.Add(new HistoryResult
+				historyResults.Add(new History
 				{
-					DateStarted = hub.root.CreationTime.ToShortTimeString(),
+					DateStarted = sessionHub.root.CreationTime.ToShortTimeString(),
 					DateCompleted = "[ TODO ]",
-					Failed = failed,
+					Failed = failed.Count,
 					Passed = passed,
 					Id = id,
-					Tests = resultsWhatewerItMeans
+					Tests = failed
 				});
 
 				id++;
@@ -139,29 +138,31 @@ namespace VCT.Server
 
 		[HttpGet]
 		[Route("fails")]
-		public JsonResult<List<TestResult>> GetFails()
+		public JsonResult<List<Test>> GetFails()
 		{
 			//What da Hell! test is fails? fails is tests? naming sucks
-			var testsResults = GetTestResults(Storage.Current.stable, Storage.Current.testing, Storage.Current.diff);
+			var testsResults = GetTestResults(Storage.Current /*not shure that Current*/);
 
 			return Json(testsResults);
 		}
 
-		private List<TestResult> GetTestResults(DirectoryInfo stableFilesDirectory, DirectoryInfo testingFilesDirectory, DirectoryInfo diffFilesDirectory)
+		private List<Test> GetTestResults(Storage.Hub node)
 		{
-			var testsResults = new List<TestResult>();
+
+
+			var testsResults = new List<Test>();
 
 			//Here we consider that diff directory will be created on any fail! 
 			//No fail, no diff directory!
-			foreach (DirectoryInfo diffDirectory in diffFilesDirectory.GetDirectories())
+			foreach (DirectoryInfo diffDirectory in node.diff.GetDirectories())
 			{
 				//Get stable directory path
-				var stableFolderPath = (from stable in stableFilesDirectory.GetDirectories()
+				var stableFolderPath = (from stable in node.stable.GetDirectories()
 										where string.Equals(diffDirectory.Name, stable.Name, StringComparison.InvariantCultureIgnoreCase)
 										where stable != null
 										select stable).FirstOrDefault();
 				//Get testing directory path
-				var testingFolderPath = (from testing in testingFilesDirectory.GetDirectories()
+				var testingFolderPath = (from testing in node.testing.GetDirectories()
 										 where string.Equals(diffDirectory.Name, testing.Name, StringComparison.InvariantCultureIgnoreCase)
 										 where testing != null
 										 select testing).FirstOrDefault();
@@ -176,7 +177,7 @@ namespace VCT.Server
 
 				var longestList = FindLongest(stableImages, testingImages, diffImages);
 
-				var artifactsCollection = new List<TestArtifacts>();
+				var artifactsCollection = new List<Tuple>();
 
 				foreach (FileInfo imageFile in longestList)
 				{
@@ -188,7 +189,7 @@ namespace VCT.Server
 					var testingData = GetAtrifactDescription(testingFile);
 					var diffData = GetAtrifactDescription(diffFile);
 
-					artifactsCollection.Add(new TestArtifacts
+					artifactsCollection.Add(new Tuple
 					{
 						StableFile = stableData,
 						TestingFile = testingData,
@@ -196,7 +197,7 @@ namespace VCT.Server
 					});
 				}
 
-				testsResults.Add(new TestResult
+				testsResults.Add(new Test
 				{
 					TestName = diffDirectory.Name,
 					Artifacts = artifactsCollection
@@ -205,12 +206,12 @@ namespace VCT.Server
 
 			if (testsResults.Count == 0)
 			{
-				testsResults.Add(new TestResult
+				testsResults.Add(new Test
 				   {
 					   TestName = "",
-					   Artifacts = new List<TestArtifacts>
+					   Artifacts = new List<Tuple>
 					{
-						new TestArtifacts
+						new Tuple
 						{
 							DiffFile = EmptyArtifact(),
 							StableFile = EmptyArtifact(),
@@ -227,16 +228,15 @@ namespace VCT.Server
 		[Route("passes")]
 		public string[] GetPassedTests()
 		{
-			var passedTests = GetPassedTests(Storage.Current.stable, Storage.Current.testing, Storage.Current.diff);
+			var passedTests = GetPassedTests(Storage.Current /*? or not ?*/);
 			return passedTests;
 		}
 
-		private string[] GetPassedTests(DirectoryInfo stableFilesDirectory, DirectoryInfo testingFilesDirectory,
-			DirectoryInfo failedTestsDirectory)
+		private string[] GetPassedTests(Storage.Hub node)
 		{
-			var stableDirectories = stableFilesDirectory.GetDirectories();
-			var testingDirectories = testingFilesDirectory.GetDirectories();
-			var failedDirectories = failedTestsDirectory.GetDirectories();
+			var stableDirectories = node.stable.GetDirectories();
+			var testingDirectories = node.testing.GetDirectories();
+			var failedDirectories = node.diff.GetDirectories();
 
 			var distinctList =
 				stableDirectories.Select(d => d.Name)
@@ -258,9 +258,9 @@ namespace VCT.Server
 		}
 
 
-		private TestArtifact EmptyArtifact()
+		private File EmptyArtifact()
 		{
-			return new TestArtifact
+			return new File
 			{
 				Name = "",
 				Path = "",
@@ -272,13 +272,13 @@ namespace VCT.Server
 		/// gets the desctiption of the current artifact file
 		/// </summary>
 		/// <param name="artifactFile">Artifact as <see cref="FileInfo"/></param>
-		/// <returns><see cref="TestArtifact"/> with Name (empty if null), Path (empty if null)</returns>
-		private TestArtifact GetAtrifactDescription(FileInfo artifactFile)
+		/// <returns><see cref="File"/> with Name (empty if null), Path (empty if null)</returns>
+		private File GetAtrifactDescription(FileInfo artifactFile)
 		{
 			if (artifactFile == null)
 				return EmptyArtifact();
 
-			return new TestArtifact
+			return new File
 			{
 				Name = artifactFile.Name,
 				Path = artifactFile.FullName,
@@ -387,7 +387,7 @@ namespace VCT.Server
 			foreach (FileInfo inputFile in inputFiles)
 			{
 				//possibly bad way and can cause memory problems i think
-				var fs = File.Open(inputFile.FullName, FileMode.Open);
+				var fs = System.IO.File.Open(inputFile.FullName, FileMode.Open);
 
 				var fileContent = new StreamContent(fs);
 				//GET MIME TYPE HERE SOMEHOW
