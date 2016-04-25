@@ -12,6 +12,22 @@ namespace VCT.Test
 	{
 		private RemoteWebDriver driver;
 
+		[TestFixtureSetUp]
+		public void TestFixtureSetUp()
+		{
+			DirectoryInfo dump = new DirectoryInfo(@"C:\projects\VCT\Output\");
+
+			foreach (FileInfo file in dump.GetFiles())
+			{
+				file.Delete();
+			}
+			foreach (DirectoryInfo dir in dump.GetDirectories())
+			{
+				dir.Delete(true);
+			}
+		}
+
+
 		[SetUp]
 		public void SetUp()
 		{

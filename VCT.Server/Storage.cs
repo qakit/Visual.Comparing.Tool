@@ -68,7 +68,15 @@ namespace VCT.Server
 
 
 
-
+		public DirectoryInfo GetLatestExistingStable(string testIdentifyer)
+		{
+			var search = Root.GetDirectories("*", SearchOption.AllDirectories)
+							 .Where(d => d.Parent.Name.Equals("StableFiles") &&
+										 d.Name.Equals(testIdentifyer) &&
+										 d.GetFiles().Any())
+							 .OrderBy(d => d.CreationTime);
+			return search.LastOrDefault();
+		}
 
 
 
@@ -82,7 +90,7 @@ namespace VCT.Server
 		{
 			//TODO: separate logs for dif suits
 			var historyFile = new FileInfo(Path.Combine(Root.FullName, HistoryFileName));
-			
+
 			using (var writer = new StreamWriter(historyFile.FullName, true))
 			{
 				writer.WriteLine(infoText);

@@ -36,7 +36,7 @@ namespace VCT.Server
 		[Route("{testId}/stable")]
 		public HttpResponseMessage GetStable(string testId)
 		{
-			return SendFilesToClient(Storage.Current.StableTestDirectory(testId));
+			return SendFilesToClient(Storage.GetLatestExistingStable(testId));
 		}
 
 		[HttpGet]
