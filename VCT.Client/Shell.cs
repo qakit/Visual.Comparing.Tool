@@ -7,10 +7,13 @@ using System.Threading.Tasks;
 
 namespace VCT.Client
 {
-
+	/// <summary>
+	/// Do not forget to set ServerAddress and ProjectId BEFORE you start using Shell.Do._any_action_
+	/// </summary>
 	public class Shell
 	{
 		private static string _baseServerAddress = "http://localhost:9111/";
+		private static string _projectId = "default";
 
 		public static string ServerAddress
 		{
@@ -21,6 +24,18 @@ namespace VCT.Client
 				else throw new InvalidDataException("Use syntax 'http://ip:port' please ");
 			}
 		}
+
+		public static string ProjectId
+		{
+			get { return _projectId; }
+			set
+			{
+				if (value.Contains("/") || value.Contains("\\"))
+					throw new InvalidDataException("[!] Don't use slash [!]");
+				_projectId = value;
+			}
+		}
+
 
 		#region singleton
 
@@ -44,17 +59,22 @@ namespace VCT.Client
 
 		#endregion
 
+
 		public void Push(DirectoryInfo dir, string nameOfTest, TestTypes type)
 		{
-			var restUrl = string.Format("{0}/tests/{1}/{2}", ServerAddress, nameOfTest, type);
+			var restUrl = string.Format("{0}/tests/{1}/{2}/{3}", ServerAddress, ProjectId, nameOfTest, type);
 			SendFilesToServer(dir, restUrl);
 		}
 
 		public bool Pull(DirectoryInfo dir, string nameOfTest, TestTypes type)
 		{
-			var restUrl = string.Format("{0}/tests/{1}/{2}", ServerAddress, nameOfTest, type);
+			var restUrl = string.Format("{0}/tests/{1}/{2}/{3}", ServerAddress, ProjectId, nameOfTest, type);
 			return GetFilesFromServer(dir, restUrl).Result;
 		}
+
+
+
+
 
 		#region old methods, not shure that we need it
 
@@ -130,6 +150,7 @@ namespace VCT.Client
 
 		#endregion
 
+
 		#region logging methods
 
 		/// <summary>
@@ -137,7 +158,7 @@ namespace VCT.Client
 		/// </summary>
 		public void SuiteStarted()
 		{
-			string url = string.Format("{0}/tests/suite/start", ServerAddress);
+			string url = string.Format("{0}/tests/{1}/suite/start", ServerAddress, ProjectId);
 			PostMessage(url, "Suite started");
 		}
 
@@ -146,7 +167,7 @@ namespace VCT.Client
 		/// </summary>
 		public void SuiteCompleted()
 		{
-			string url = string.Format("{0}/tests/suite/stop", ServerAddress);
+			string url = string.Format("{0}/tests/{1}/suite/stop", ServerAddress, ProjectId);
 			PostMessage(url, "Suite completed");
 		}
 

@@ -26,39 +26,42 @@ namespace VCT.Server
 			}
 
 			private DirectoryInfo _root;
+			private DirectoryInfo _proj;
 			private DirectoryInfo _stable;
 			private DirectoryInfo _testing;
 			private DirectoryInfo _diff;
 
 			public Hub(DirectoryInfo branch)
 			{
-				_root = branch;
-				_stable = Directory.CreateDirectory(_root.FullName + @"/StableFiles");
-				_testing = Directory.CreateDirectory(_root.FullName + @"/TestingFiles");
-				_diff = Directory.CreateDirectory(_root.FullName + @"/DiffFiles");
+				_root =		branch;
+				_proj =		branch.Parent;
+				_stable =	_root.CreateSubdirectory("StableFiles");
+				_testing =	_root.CreateSubdirectory("TestingFiles");
+				_diff =		_root.CreateSubdirectory("DiffFiles");
 			}
 
-			public DirectoryInfo root { get { return _root; } }
-			public DirectoryInfo stable { get { return _stable; } }
-			public DirectoryInfo testing { get { return _testing; } }
-			public DirectoryInfo diff { get { return _diff; } }
+			public DirectoryInfo root		{ get { return _root; } }
+			public DirectoryInfo proj		{ get { return _proj; } }
+			public DirectoryInfo stable		{ get { return _stable; } }
+			public DirectoryInfo testing	{ get { return _testing; } }
+			public DirectoryInfo diff		{ get { return _diff; } }
 
 
 			#region old wrapers
 
 			public DirectoryInfo StableTestDirectory(string testName)
 			{
-				return Directory.CreateDirectory(stable.FullName + @"/" + testName);
+				return stable.CreateSubdirectory(testName);
 			}
 
 			public DirectoryInfo TestingTestDirectory(string testName)
 			{
-				return Directory.CreateDirectory(testing.FullName + @"/" + testName);
+				return testing.CreateSubdirectory(testName);
 			}
 
 			public DirectoryInfo DiffTestDirectory(string testName)
 			{
-				return Directory.CreateDirectory(diff.FullName + @"/" + testName);
+				return diff.CreateSubdirectory(testName);
 			}
 
 			#endregion
@@ -70,6 +73,8 @@ namespace VCT.Server
 
 		public DirectoryInfo GetLatestExistingStable(string testIdentifyer)
 		{
+			//TODO: dont search in all, search just in proj dir
+
 			var search = Root.GetDirectories("*", SearchOption.AllDirectories)
 							 .Where(d => d.Parent.Name.Equals("StableFiles") &&
 										 d.Name.Equals(testIdentifyer) &&
@@ -79,17 +84,17 @@ namespace VCT.Server
 		}
 
 
-
-
 		/// <summary>
 		/// Writes info text to history file
 		/// </summary>
+		/// <param name="projId"></param>
 		/// <param name="infoText">text</param>
 		/// <param name="removeIfExists">do we need to remove previous file if it exists (optional. Default - false)</param>
-		public void WriteHistoryInfo(string infoText, bool removeIfExists = false)
+		public void WriteLog(string projId, string infoText, bool removeIfExists = false)
 		{
-			//TODO: separate logs for dif suits
-			var historyFile = new FileInfo(Path.Combine(Root.FullName, HistoryFileName));
+			DirectoryInfo projDir = Root.CreateSubdirectory(projId);
+
+			var historyFile = new FileInfo(Path.Combine(projDir.FullName, HistoryFileName));
 
 			using (var writer = new StreamWriter(historyFile.FullName, true))
 			{
@@ -98,9 +103,9 @@ namespace VCT.Server
 		}
 
 
-		public void Allocate(string inceptionTime)
+		public void Allocate(string projId, string inceptionTime)
 		{
-			DirectoryInfo branch = Directory.CreateDirectory(Root.FullName + @"/" + inceptionTime);
+			DirectoryInfo branch = Root.CreateSubdirectory(projId).CreateSubdirectory(inceptionTime);
 			Current = new Hub(branch);
 		}
 	}
