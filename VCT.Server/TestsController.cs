@@ -1,16 +1,13 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Web.Http;
 using System.Web.Http.Results;
-using Newtonsoft.Json;
 using Config = System.Configuration.ConfigurationManager;
 
 namespace VCT.Server
@@ -18,10 +15,8 @@ namespace VCT.Server
 	[RoutePrefix("tests")]
 	public class TestsController : ApiController
 	{
-
 		public static string LocalStorage = Config.AppSettings["storage"];
 		static readonly string DateFormat = Config.AppSettings["dateFormat"];
-
 
 		//private static DirectoryInfo CurrentSessionDir;
 		private Storage Storage = new Storage();
@@ -79,14 +74,13 @@ namespace VCT.Server
 		[Route("{projId}/{testId}/diff")]
 		public Task<IHttpActionResult> PostDiff(string projId, string testId)
 		{
-			
+
 			return GetFilesFromClient(CurrentFor(projId).DiffTestDirectory(testId));
 		}
 
-
 		private Storage.Hub CurrentFor(string projId)
 		{
-			if (Storage.Current.proj.Name.Equals(projId)) return Storage.Current;//ideal case
+			if (Storage.Current != null && Storage.Current.proj.Name.Equals(projId)) return Storage.Current;//ideal case
 			else //may happend if we have two client session in the same time
 			{
 				var freshestInAProj = Storage.Root
@@ -119,53 +113,66 @@ namespace VCT.Server
 		public void SuiteStop(string projId)
 		{
 			string finishTime = DateTime.Now.ToString(DateFormat);
-			Storage.WriteLog(projId , string.Format("Completed: {0}\n", finishTime));
-			Console.WriteLine("[{0}] Suite stopped at {0}", projId , finishTime);
+			Storage.WriteLog(projId, string.Format("Completed: {0}\n", finishTime));
+			Console.WriteLine("[{0}] Suite stopped at {0}", projId, finishTime);
 		}
 
 		[HttpGet]
-		[Route("{projId}/history")]
-		public JsonResult<List<History>> GetHistory(string projId)
+		[Route("history")]
+		public JsonResult<List<Project>> GetHistory()
 		{
-			List<History> historyResults = new List<History>();
+			var allProjects = new List<Project>();
 
-			int id = 0;
+			int projectId = 0;
 
-			foreach (DirectoryInfo session in 
-				Storage.Root.GetDirectories().OrderBy(p => p.CreationTime).Reverse())
+			foreach (DirectoryInfo projectDirectory in
+				Storage.Root.GetDirectories("*", SearchOption.TopDirectoryOnly))
 			{
-				var sessionHub = new Storage.Hub(session);
-				
-				var failed = GetFailedResults(sessionHub);
-				var passed = GetPassedTests(sessionHub).Length;
+				int suiteId = 0;
 
-				historyResults.Add(new History
+				var suiteResults = new List<Suite>();
+
+				foreach (var suiteDirectory in projectDirectory.GetDirectories("*", SearchOption.TopDirectoryOnly).OrderBy(p => p.CreationTime).Reverse())
 				{
-					DateStarted = sessionHub.root.CreationTime.ToShortTimeString(),
-					DateCompleted = "[ TODO ]",
-					Failed = failed.Count,
-					Passed = passed,
-					Id = id,
-					Tests = failed
+					//any suite directory which contain diff/test/stable directories in it
+					var currentSuiteDirectory = new Storage.Hub(suiteDirectory);
+
+					var failed = GetFailedResults(currentSuiteDirectory);
+					var passed = GetPassedTests(currentSuiteDirectory).Length;
+					suiteResults.Add(new Suite
+					{
+						DateStarted = currentSuiteDirectory.suiteDirectory.CreationTime.ToShortTimeString(),
+						DateCompleted = "[ TODO ]",
+						Failed = failed.Count,
+						Passed = passed,
+						Id = suiteId,
+						Tests = failed
+					});
+					suiteId++;
+				}
+
+				allProjects.Add(new Project
+				{
+					Suites = suiteResults,
+					Id = projectId,
+					Name = projectDirectory.Name
 				});
 
-				id++;
+				projectId++;
 			}
 
-			return Json(historyResults);
+			return Json(allProjects);
 		}
 
 		[HttpGet]
 		[Route("{projId}/fails")]
 		public JsonResult<List<Test>> GetFails(string projId)
 		{
-			return Json( GetFailedResults( CurrentFor(projId) ) );
+			return Json(GetFailedResults(CurrentFor(projId)));
 		}
 
 		private List<Test> GetFailedResults(Storage.Hub node)
 		{
-
-
 			var testsResults = new List<Test>();
 
 			//Here we consider that diff directory will be created on any fail! 
@@ -173,7 +180,7 @@ namespace VCT.Server
 			foreach (DirectoryInfo diffDirectory in node.diff.GetDirectories())
 			{
 				//Get stable directory path
-				var stableFolderPath = Storage.GetLatestExistingStable(diffDirectory.Name);
+				var stableFolderPath = Storage.GetLatestExistingStable(diffDirectory.Name, node.suiteDirectory);
 
 				//Get testing directory path
 				var testingFolderPath = (from testing in node.testing.GetDirectories()
@@ -195,13 +202,13 @@ namespace VCT.Server
 
 				foreach (FileInfo imageFile in longestList)
 				{
-					var stableFile =	GetFileByName(stableImages,		imageFile.Name);
-					var testingFile =	GetFileByName(testingImages,	imageFile.Name);
-					var diffFile =		GetFileByName(diffImages,		imageFile.Name);
+					var stableFile = GetFileByName(stableImages, imageFile.Name);
+					var testingFile = GetFileByName(testingImages, imageFile.Name);
+					var diffFile = GetFileByName(diffImages, imageFile.Name);
 
-					var stableData =	GetAtrifactDescription(stableFile);
-					var testingData =	GetAtrifactDescription(testingFile);
-					var diffData =		GetAtrifactDescription(diffFile);
+					var stableData = GetAtrifactDescription(stableFile);
+					var testingData = GetAtrifactDescription(testingFile);
+					var diffData = GetAtrifactDescription(diffFile);
 
 					artifactsCollection.Add(new Tuple
 					{
@@ -247,7 +254,7 @@ namespace VCT.Server
 		[Route("{projId}/passes")]
 		public string[] GetPassedTests(string projId)
 		{
-			return GetPassedTests( CurrentFor(projId) );
+			return GetPassedTests(CurrentFor(projId));
 		}
 
 		private string[] GetPassedTests(Storage.Hub node)

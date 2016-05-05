@@ -59,7 +59,6 @@ namespace VCT.Client
 
 		#endregion
 
-
 		public void Push(DirectoryInfo dir, string nameOfTest, TestTypes type)
 		{
 			var restUrl = string.Format("{0}/tests/{1}/{2}/{3}", ServerAddress, ProjectId, nameOfTest, type);
@@ -71,10 +70,6 @@ namespace VCT.Client
 			var restUrl = string.Format("{0}/tests/{1}/{2}/{3}", ServerAddress, ProjectId, nameOfTest, type);
 			return GetFilesFromServer(dir, restUrl).Result;
 		}
-
-
-
-
 
 		#region old methods, not shure that we need it
 
