@@ -1,51 +1,32 @@
-var fakeData = [{
-    "TestName": "",
-    "Artifacts": [
-        {
-            "StableFile": {
-                "Name" : "",
-                "Path" : "",
-                "RelativePath" : ""
-            },
-            "TestingFile": {
-                "Name" : "",
-                "Path" : "",
-                "RelativePath" : ""
-            },
-            "DiffFile": {
-                "Name" : "",
-                "Path" : "",
-                "RelativePath" : ""
-            }
-        }]
-}]
-
-var fakeHistoryData = [{
-    "DateStarted": "",
-	"DateCompleted": "",
-	"Passed": 0,
-	"Failed": 0,
+var fakeProjectData = [{
 	"Id": 0,
-	"Tests": [{
-		"TestName": "",
-    "Artifacts": [
-        {
-            "StableFile": {
-                "Name" : "",
-                "Path" : "",
-                "RelativePath" : ""
-            },
-            "TestingFile": {
-                "Name" : "",
-                "Path" : "",
-                "RelativePath" : ""
-            },
-            "DiffFile": {
-                "Name" : "",
-                "Path" : "",
-                "RelativePath" : ""
-            }
-        }]
+	"Name": "",
+	"Suites": [{
+		"DateStarted": "",
+		"DateCompleted": "",
+		"Passed": 0,
+		"Failed": 0,
+		"Id": 0,
+		"Tests": [{
+			"TestName": "",
+			"Artifacts": [{
+				"StableFile": {
+					"Name": "",
+					"Path": "",
+					"RelativePath": ""
+				},
+				"TestingFile": {
+					"Name": "",
+					"Path": "",
+					"RelativePath": ""
+				},
+				"DiffFile": {
+					"Name": "",
+					"Path": "",
+					"RelativePath": ""
+				}
+			}]
+		}]
 	}]
 }]
 
@@ -63,7 +44,8 @@ var NavigationResultBar = React.createClass({
     render: function() {
         const diffIconClass = this.props.showDiff ? "fa fa-eye-slash" : "fa fa-eye";
         const imageIndex = this.props.currentImageIndex + 1;
-        const display = this.props.hasDiff ? { display: "inline" } : { display: "none" };
+        const displayDiff = this.props.hasDiff ? { display: "inline" } : { display: "none" };
+        const displayAcceptReject = this.props.showAcceptRefect ? { display: "inline" } : { display: "none" };
 
         return (
             <div className="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
@@ -73,12 +55,12 @@ var NavigationResultBar = React.createClass({
                     <li><p className="navbar-text">{imageIndex} / {this.props.maxImages}</p></li>
                     <li><a href="#" id="nextFail" onClick={this.props.clickEvent}><i id="nextFail" className="fa fa-forward"></i></a></li>
                     <li><a href="#" id="nextTest" onClick={this.props.clickEvent}><i id="nextTest" className="fa fa-step-forward"></i></a></li>
-                    <li style={display}><a href="#" id="showDiff" onClick={this.props.clickEvent}><i id="showDiff" className={diffIconClass}></i></a></li>
+                    <li style={displayDiff}><a href="#" id="showDiff" onClick={this.props.clickEvent}><i id="showDiff" className={diffIconClass}></i></a></li>
                     <li><p className="navbar-text">{this.props.testName}</p></li>
                 </ul>
                 <ul className="nav navbar-nav navbar-right">
-                    <li><a href="#" id="acceptFail" onClick={this.props.clickEvent}><i id="acceptFail" className="fa fa-check"></i></a></li>
-                    <li><a href="#" id="rejectFail" onClick={this.props.clickEvent}><i id="rejectFail" className="fa fa-ban"></i></a></li>
+                    <li style={displayAcceptReject}><a href="#" id="acceptFail" onClick={this.props.clickEvent}><i id="acceptFail" className="fa fa-check"></i></a></li>
+                    <li style={displayAcceptReject}><a href="#" id="rejectFail" onClick={this.props.clickEvent}><i id="rejectFail" className="fa fa-ban"></i></a></li>
                 </ul>
             </div>
         )
@@ -192,9 +174,10 @@ var ResultsPreviewCotent = React.createClass({
         }
         if (id === "acceptFail") {
             var testName = this.state.testData[this.state.testIndex].TestName;
+            var projectName = this.props.projectName;
             if(testName === "") return;
             
-            var url = 'tests//' + testName + '//stable';
+            var url = 'tests//' + projectName + "//" + testName + '//stable';
             $.ajax({
                 url: url,
                 dataType: 'text',
@@ -299,6 +282,7 @@ var ResultsPreviewCotent = React.createClass({
                             currentImageIndex = {this.state.imageIndex}
                             maxImages = {this.state.maxImages}
                             hasDiff = {this.state.hasDiff}
+                            showAcceptRefect = {this.props.showAcceptRefect}
                         />
                     </div>
                 </nav>
@@ -356,10 +340,40 @@ var HistoryItem = React.createClass({
     }
 });
 
+var ProjectItem = React.createClass({
+    render: function() {
+        const awesomeStyle = {
+            height: '80px',
+            marginTop: '15px',  
+        };
+        const evenMoreAwesomeStyle = {
+            display: 'block',
+            width: '100%',
+            height: '100%',
+            color: 'rgba(0,0,0,0.87)',
+        };
+
+        return (
+            <div className="col-xs-12 col-md-6" style={awesomeStyle} onClick={this.props.clickEventHandler}>
+                <a href="#" className="row run" style={evenMoreAwesomeStyle}>
+                    <div className="col-xs-6 info">
+                        <p className="title">Some title with ID: {this.props.id}</p>
+                        <p className="details">Project: {this.props.name}</p>
+                    </div>
+                    <div className="col-xs-6 stat suites">
+                        <p className="title">Suites</p>
+                        <p className="amount">{this.props.suites}</p>
+                    </div>
+                </a>
+            </div>
+        )
+    }
+});
+
 var HistoryContent = React.createClass({
     render: function(){
         var clickHanlded = this.props.clickEventHandler;
-        
+        var projectName = this.props.projectName;
         return (
             <div>
                 <nav className="navbar navbar-default history">
@@ -377,7 +391,41 @@ var HistoryContent = React.createClass({
                                 failed={d.Failed}
                                 dateCompleted={d.DateCompleted}
                                 dateStarted={d.DateStarted}
-                                clickEventHandler = {clickHanlded(d.Id)}
+                                clickEventHandler = {clickHanlded(d.Id, projectName)}
+                           />
+                       })}
+                    </div>
+                </div> 
+            </div>
+        );
+    }
+})
+
+var ProjectsContent = React.createClass({
+    render: function(){
+        var clickHanlded = this.props.clickEventHandler;
+        
+        return (
+            <div>
+                <nav className="navbar navbar-default history">
+                    <div className="container-fluid">
+                        <div className="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                            <ul className="nav navbar-nav">
+                                <li><p className="navbar-text"><i className="ion-clock"></i></p></li>
+                                <li><p className="navbar-text">Projects</p></li>
+                            </ul>
+                        </div>
+                    </div>
+                </nav>
+                <div className="container-fluid">
+                    <div className="row">
+                       {this.props.data.map(function(d){
+                           return <ProjectItem 
+                                key={d.Id} 
+                                id={d.Id}
+                                name={d.Name}
+                                suites={d.Suites.length}
+                                clickEventHandler = {clickHanlded(d.Id, d.Name)}
                            />
                        })}
                     </div>
@@ -390,11 +438,11 @@ var HistoryContent = React.createClass({
 var Page = React.createClass({
     getInitialState: function(){
         var defaultUrl = "/tests/history";
-        var fakeData = fakeHistoryData;
+        var fakeData = fakeProjectData;
         return ({
             url: defaultUrl,
             data: fakeData,
-            content: <HistoryContent data={fakeData} clickEventHandler = {this.handleChildClick}/>,
+            content: <ProjectsContent data={fakeData} clickEventHandler = {this.handleProjectClick}/>,
         });
     },
     componentDidMount: function(){
@@ -408,7 +456,7 @@ var Page = React.createClass({
             success: function(data) {
                 this.setState({
                     data: data,
-                    content: <HistoryContent data={data} clickEventHandler = {this.handleChildClick}/>
+                    content: <ProjectsContent data={data} clickEventHandler = {this.handleProjectClick}/>
             });
             }.bind(this),
             error: function(xhr, status, err) {
@@ -416,12 +464,24 @@ var Page = React.createClass({
             }.bind(this)
         });
     },
-    handleChildClick: function (id) {
+    handleHistoryClick: function(id, projectName){
+        const _this = this;
+        return function(event){
+              var testData = _this.state.data[id].Tests;
+              var showAcceptRefect = id === 0 ? true : false;
+              _this.setState({
+                    data: testData,
+                    content: <ResultsPreviewCotent data={testData} showAcceptRefect = {showAcceptRefect} projectName={projectName}/>
+              });
+        }
+    },
+    handleProjectClick: function (id, projectName) {
        const _this = this;
        return function(event){
-              var testData = _this.state.data[id].Tests;
+              var testData = _this.state.data[id].Suites;
               _this.setState({
-                content: <ResultsPreviewCotent data={testData} />
+                    data: testData,
+                    content: <HistoryContent data={testData} projectName={projectName} clickEventHandler = {_this.handleHistoryClick}/>
               });
         }
     },

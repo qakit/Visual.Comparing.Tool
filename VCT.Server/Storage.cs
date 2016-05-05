@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
 using System.Linq;
 using Config = System.Configuration.ConfigurationManager;
 
@@ -22,25 +20,29 @@ namespace VCT.Server
 		{
 			public string DebugInfo()
 			{
-				return string.Join(" |\r", root.FullName, stable.FullName, testing.FullName, diff.FullName);
+				return string.Join(" |\r", suiteDirectory.FullName, stable.FullName, testing.FullName, diff.FullName);
 			}
 
-			private DirectoryInfo _root;
+			private DirectoryInfo _suiteDirectory;
 			private DirectoryInfo _proj;
 			private DirectoryInfo _stable;
 			private DirectoryInfo _testing;
 			private DirectoryInfo _diff;
 
-			public Hub(DirectoryInfo branch)
+			/// <summary>
+			/// 
+			/// </summary>
+			/// <param name="suiteDirectory">Suite result directory</param>
+			public Hub(DirectoryInfo suiteDirectory)
 			{
-				_root =		branch;
-				_proj =		branch.Parent;
-				_stable =	_root.CreateSubdirectory("StableFiles");
-				_testing =	_root.CreateSubdirectory("TestingFiles");
-				_diff =		_root.CreateSubdirectory("DiffFiles");
+				_suiteDirectory =		suiteDirectory;
+				_proj =		suiteDirectory.Parent;
+				_stable =	_suiteDirectory.CreateSubdirectory("StableFiles");
+				_testing =	_suiteDirectory.CreateSubdirectory("TestingFiles");
+				_diff =		_suiteDirectory.CreateSubdirectory("DiffFiles");
 			}
 
-			public DirectoryInfo root		{ get { return _root; } }
+			public DirectoryInfo suiteDirectory		{ get { return _suiteDirectory; } }
 			public DirectoryInfo proj		{ get { return _proj; } }
 			public DirectoryInfo stable		{ get { return _stable; } }
 			public DirectoryInfo testing	{ get { return _testing; } }
@@ -68,14 +70,12 @@ namespace VCT.Server
 
 		}
 
-
-
-
-		public DirectoryInfo GetLatestExistingStable(string testIdentifyer)
+		public DirectoryInfo GetLatestExistingStable(string testIdentifyer, DirectoryInfo directoryToSearch = null)
 		{
 			//TODO: dont search in all, search just in proj dir
+			if (directoryToSearch == null) directoryToSearch = Root;
 
-			var search = Root.GetDirectories("*", SearchOption.AllDirectories)
+			var search = directoryToSearch.GetDirectories("*", SearchOption.AllDirectories)
 							 .Where(d => d.Parent.Name.Equals("StableFiles") &&
 										 d.Name.Equals(testIdentifyer) &&
 										 d.GetFiles().Any())
@@ -101,7 +101,6 @@ namespace VCT.Server
 				writer.WriteLine(infoText);
 			}
 		}
-
 
 		public void Allocate(string projId, string inceptionTime)
 		{

@@ -2,7 +2,14 @@
 
 namespace VCT.Server
 {
-	public class History
+	public class Project
+	{
+		public int Id { get; set; }
+		public string Name { get; set; }
+		public List<Suite> Suites { get; set; }
+	}
+
+	public class Suite
 	{
 		public string DateStarted { get; set; }
 		public string DateCompleted { get; set; }
