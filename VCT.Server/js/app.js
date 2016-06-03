@@ -297,8 +297,8 @@ var HistoryBar = React.createClass({
         return (
             <div className="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                 <ul className="nav navbar-nav">
-                    <li><p className="navbar-text"><i className="ion-clock"></i></p></li>
-                    <li><p className="navbar-text">Test Results</p></li>
+                    <li><p className="navbar-text icon"><i className="ion-clock"></i></p></li>
+                    <li><p className="navbar-text title">Test Results</p></li>
                 </ul>
             </div>
         )
@@ -317,25 +317,15 @@ var HistoryItem = React.createClass({
             height: '100%',
             color: 'rgba(0,0,0,0.87)',
         };
-
+        
         return (
-            <div className="col-xs-12 col-md-6" style={awesomeStyle} onClick={this.props.clickEventHandler}>
-                <a href="#" className="row run" style={evenMoreAwesomeStyle}>
-                    <div className="col-xs-6 info">
-                        <p className="title">Some title with ID: {this.props.id}</p>
-                        <p className="details">Started: {this.props.dateStarted}. Completed: {this.props.dateCompleted}</p>
-                    </div>
-                    <div className="col-xs-3 stat passed">
-                        <p className="title">Passed</p>
-                        <p className="amount">{this.props.passed}</p>
-                    </div>
-                    <div className="col-xs-3 stat failed">
-                        <p className="title">Failed</p>
-                        <p className="amount">{this.props.failed}</p>
-                    </div>
-                    
-                </a>
-            </div>
+            <tr onClick={this.props.clickEventHandler}>
+                <td>{this.props.id}</td>
+                <td>{this.props.dateStarted}</td>
+                <td>{this.props.dateCompleted}</td>
+                <td className="stat failed">{this.props.failed}</td>
+                <td className="stat passed">{this.props.passed}</td>
+            </tr>
         )
     }
 });
@@ -374,6 +364,7 @@ var HistoryContent = React.createClass({
     render: function(){
         var clickHanlded = this.props.clickEventHandler;
         var projectName = this.props.projectName;
+        console.log(this.props.data);
         return (
             <div>
                 <nav className="navbar navbar-default history">
@@ -381,19 +372,32 @@ var HistoryContent = React.createClass({
                         <HistoryBar />
                     </div>
                 </nav>
-                <div className="container-fluid">
-                    <div className="row">
-                       {this.props.data.map(function(d){
-                           return <HistoryItem 
-                                key={d.Id} 
-                                id={d.Id}
-                                passed={d.Passed}
-                                failed={d.Failed}
-                                dateCompleted={d.DateCompleted}
-                                dateStarted={d.DateStarted}
-                                clickEventHandler = {clickHanlded(d.Id, projectName)}
-                           />
-                       })}
+                <div className="row history-items">
+                    <div className="col-xs-12">
+                        <table className="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Suite ID</th>
+                                    <th>Start Time</th>
+                                    <th>End Time</th>
+                                    <th>Failed Tests</th>
+                                    <th>Passed Tests</th>
+                                </tr>            
+                            </thead>
+                            <tbody>
+                                {this.props.data.map(function(d){
+                                    return <HistoryItem 
+                                            key={d.Id} 
+                                            id={d.Id}
+                                            passed={d.Passed}
+                                            failed={d.Failed}
+                                            dateCompleted={d.DateCompleted}
+                                            dateStarted={d.DateStarted}
+                                            clickEventHandler = {clickHanlded(d.Id, projectName)}
+                                    />
+                                })}
+                            </tbody>
+                        </table>
                     </div>
                 </div> 
             </div>
@@ -411,8 +415,8 @@ var ProjectsContent = React.createClass({
                     <div className="container-fluid">
                         <div className="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                             <ul className="nav navbar-nav">
-                                <li><p className="navbar-text"><i className="ion-clock"></i></p></li>
-                                <li><p className="navbar-text">Projects</p></li>
+                                <li><p className="navbar-text icon"><i className="ion-clock"></i></p></li>
+                                <li><p className="navbar-text title">Projects</p></li>
                             </ul>
                         </div>
                     </div>
