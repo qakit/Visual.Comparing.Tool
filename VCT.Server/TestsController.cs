@@ -5,6 +5,8 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using System.Web.Http;
 using System.Web.Http.Results;
@@ -33,7 +35,24 @@ namespace VCT.Server
 		[Route("{projId}/{testId}/stable")]
 		public HttpResponseMessage GetStable(string projId, string testId)
 		{
-			return SendFilesToClient(Storage.GetLatestExistingStable(testId));
+			var projectDir = CurrentFor(projId).projectDirectory;
+			return SendFilesToClient(Storage.GetLatestExistingStable(testId, projectDir));
+		}
+
+		[HttpGet]
+		[Route("{projId}/{testId}/{fileName}/stable")]
+		public HttpResponseMessage GetStableImage(string projId, string testId, string fileName)
+		{
+			var projectDir = CurrentFor(projId).projectDirectory;
+			return SendFilesToClient(Storage.GetLatestExistingStable(testId, projectDir), fileName);
+		}
+
+		[HttpGet]
+		[Route("{projId}/{testId}/{fileName}/stable/hash")]
+		public HttpResponseMessage GetStableImageHash(string projId, string testId, string fileName)
+		{
+			var projectDir = CurrentFor(projId).projectDirectory;
+			return SendHashToClient(Storage.GetLatestExistingStable(testId, projectDir), fileName);
 		}
 
 		[HttpGet]
@@ -80,7 +99,7 @@ namespace VCT.Server
 
 		private Storage.Hub CurrentFor(string projId)
 		{
-			if (Storage.Current != null && Storage.Current.proj.Name.Equals(projId)) return Storage.Current;//ideal case
+			if (Storage.Current != null && Storage.Current.projectDirectory.Name.Equals(projId)) return Storage.Current;//ideal case
 			else //may happend if we have two client session in the same time
 			{
 				var freshestInAProj = Storage.Root
@@ -177,13 +196,13 @@ namespace VCT.Server
 
 			//Here we consider that diff directory will be created on any fail! 
 			//No fail, no diff directory!
-			foreach (DirectoryInfo diffDirectory in node.diff.GetDirectories())
+			foreach (DirectoryInfo diffDirectory in node.diffDirectory.GetDirectories())
 			{
 				//Get stable directory path
 				var stableFolderPath = Storage.GetLatestExistingStable(diffDirectory.Name, node.suiteDirectory);
 
 				//Get testing directory path
-				var testingFolderPath = (from testing in node.testing.GetDirectories()
+				var testingFolderPath = (from testing in node.testingDirectory.GetDirectories()
 										 where string.Equals(diffDirectory.Name, testing.Name, StringComparison.InvariantCultureIgnoreCase)
 										 where testing != null
 										 select testing).FirstOrDefault();
@@ -226,23 +245,23 @@ namespace VCT.Server
 			}
 
 			#region looks bad, probably need to change
-
-			if (testsResults.Count == 0)
-			{
-				testsResults.Add(new Test
-					{
-						TestName = "",
-						Artifacts = new List<Tuple>
-							{
-								new Tuple
-									{
-										DiffFile = EmptyArtifact(),
-										StableFile = EmptyArtifact(),
-										TestingFile = EmptyArtifact()
-									}
-							}
-					});
-			}
+//
+//			if (testsResults.Count == 0)
+//			{
+//				testsResults.Add(new Test
+//					{
+//						TestName = "",
+//						Artifacts = new List<Tuple>
+//							{
+//								new Tuple
+//									{
+//										DiffFile = EmptyArtifact(),
+//										StableFile = EmptyArtifact(),
+//										TestingFile = EmptyArtifact()
+//									}
+//							}
+//					});
+//			}
 
 			#endregion
 
@@ -259,9 +278,9 @@ namespace VCT.Server
 
 		private string[] GetPassedTests(Storage.Hub node)
 		{
-			var stableDirectories = node.stable.GetDirectories();
-			var testingDirectories = node.testing.GetDirectories();
-			var failedDirectories = node.diff.GetDirectories();
+			var stableDirectories = node.stableDirectory.GetDirectories();
+			var testingDirectories = node.testingDirectory.GetDirectories();
+			var failedDirectories = node.diffDirectory.GetDirectories();
 
 			var distinctList =
 				stableDirectories.Select(d => d.Name)
@@ -339,7 +358,17 @@ namespace VCT.Server
 			}
 			return longest;
 		}
-
+		
+		private string GetHexByteArray(byte[] array)
+		{
+			var builder = new StringBuilder();
+			int i;
+			for (i = 0; i < array.Length; i++)
+			{
+				builder.Append(String.Format("{0:X2}", array[i]));
+			}
+			return builder.ToString();
+		}
 
 		public class DirectoryComparer : IEqualityComparer<DirectoryInfo>
 		{
@@ -400,12 +429,14 @@ namespace VCT.Server
 		/// </summary>
 		/// <param name="inputDirectory">Input Directory from which we need send files back</param>
 		/// <returns></returns>
-		public HttpResponseMessage SendFilesToClient(DirectoryInfo inputDirectory)
+		public HttpResponseMessage SendFilesToClient(DirectoryInfo inputDirectory, string fileNameToSend = "")
 		{
 			if (inputDirectory == null || !inputDirectory.Exists)
 				return new HttpResponseMessage(HttpStatusCode.NoContent);
 
-			var inputFiles = inputDirectory.GetFiles();
+			string searchPattern = string.IsNullOrEmpty(fileNameToSend) ? "*" : fileNameToSend;
+
+			var inputFiles = inputDirectory.GetFiles(searchPattern);
 
 			if (!inputFiles.Any()) return new HttpResponseMessage(HttpStatusCode.NoContent);
 
@@ -424,6 +455,26 @@ namespace VCT.Server
 
 			var response = new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = content };
 			return response;
+		}
+
+		public HttpResponseMessage SendHashToClient(DirectoryInfo inputDirectory, string fileName)
+		{
+			if (inputDirectory == null || !inputDirectory.Exists)
+				return new HttpResponseMessage(HttpStatusCode.NoContent);
+
+			var inputFiles = inputDirectory.GetFiles(fileName);
+			if (!inputFiles.Any()) return new HttpResponseMessage(HttpStatusCode.NoContent);
+
+			SHA256 hash = SHA256Managed.Create();
+
+			var fileStream = inputFiles[0].Open(FileMode.Open);
+			var hashValue = hash.ComputeHash(fileStream);
+			var result = GetHexByteArray(hashValue);
+
+			fileStream.Close();
+
+			var content = new StringContent(result);
+			return new HttpResponseMessage { Content = content };
 		}
 
 		public async Task<IHttpActionResult> UpdateFilesForTest(DirectoryInfo sourceDirectory, DirectoryInfo targetDirectory)

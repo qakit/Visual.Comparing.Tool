@@ -3,6 +3,8 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace VCT.Client
@@ -12,7 +14,7 @@ namespace VCT.Client
 	/// </summary>
 	public class Shell
 	{
-		private static string _baseServerAddress = "http://localhost:9111/";
+		private static string _baseServerAddress = "http://w7ae.ncgc.local:8080/";
 		private static string _projectId = "default";
 
 		public static string ServerAddress
@@ -121,6 +123,40 @@ namespace VCT.Client
 			return hasStable;
 		}
 
+		public string GetStableFileHash(string testName, string fileName)
+		{
+			var restUrl = string.Format("{0}/tests/{1}/{2}/{3}/stable/hash", ServerAddress, ProjectId, testName, fileName);
+			return GetResultFromServer(restUrl).Result;
+		}
+
+		/// <summary>
+		/// Computes hash for current file
+		/// </summary>
+		/// <param name="testingFile"></param>
+		/// <returns></returns>
+		public string ComputeFileHash(FileInfo testingFile)
+		{
+			SHA256 hash = SHA256Managed.Create();
+
+			var fileStream = testingFile.Open(FileMode.Open);
+			var hashValue = hash.ComputeHash(fileStream);
+			var result = GetHexByteArray(hashValue);
+
+			fileStream.Close();
+			return result;
+		}
+
+		private string GetHexByteArray(byte[] array)
+		{
+			var builder = new StringBuilder();
+			int i;
+			for (i = 0; i < array.Length; i++)
+			{
+				builder.Append(String.Format("{0:X2}", array[i]));
+			}
+			return builder.ToString();
+		}
+
 		/// <summary>
 		/// Saves all diff files from specified directory to file server
 		/// </summary>
@@ -193,12 +229,19 @@ namespace VCT.Client
 		/// <param name="url">RestAPI url</param>
 		private static void SendFilesToServer(DirectoryInfo dir, string url)
 		{
+			
 			using (var httpClient = new HttpClient())
 			{
-				var inputFiles = dir.GetFiles();
-				//				if (!inputFiles.Any()) throw new Exception("No files to upload");
-
 				var content = new MultipartFormDataContent();
+				HttpResponseMessage result;
+				if (dir == null)
+				{
+					result = httpClient.PostAsync(url, content).Result;
+					Console.WriteLine(result);
+					return;
+				}
+
+				var inputFiles = dir.GetFiles();
 
 				foreach (FileInfo file in inputFiles)
 				{
@@ -207,7 +250,7 @@ namespace VCT.Client
 					content.Add(fileContent, "file", file.Name);
 				}
 
-				var result = httpClient.PostAsync(url, content).Result;
+				result = httpClient.PostAsync(url, content).Result;
 				Console.WriteLine(result);
 			}
 		}
@@ -240,6 +283,20 @@ namespace VCT.Client
 				}
 				Console.WriteLine(result);
 				return true;
+			}
+		}
+
+		private static async Task<string> GetResultFromServer(string url)
+		{
+			using (var httpClient = new HttpClient())
+			{
+				var result = httpClient.GetAsync(url).Result;
+				if (result.StatusCode == HttpStatusCode.NoContent)
+				{
+					return string.Empty;
+				}
+
+				return await result.Content.ReadAsStringAsync();
 			}
 		}
 

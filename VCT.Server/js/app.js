@@ -311,6 +311,7 @@ var HistoryItem = React.createClass({
             height: '80px',
             marginTop: '15px',  
         };
+        
         const evenMoreAwesomeStyle = {
             display: 'block',
             width: '100%',
@@ -318,13 +319,15 @@ var HistoryItem = React.createClass({
             color: 'rgba(0,0,0,0.87)',
         };
         
+        var suiteClass = this.props.failed === 0 ? "suite passed" : "suite failed"
+        
         return (
             <tr onClick={this.props.clickEventHandler}>
-                <td>{this.props.id}</td>
+                <td className={suiteClass}>{this.props.id}</td>
                 <td>{this.props.dateStarted}</td>
                 <td>{this.props.dateCompleted}</td>
-                <td className="stat failed">{this.props.failed}</td>
                 <td className="stat passed">{this.props.passed}</td>
+                <td className="stat failed">{this.props.failed}</td>
             </tr>
         )
     }
@@ -377,11 +380,11 @@ var HistoryContent = React.createClass({
                         <table className="table table-striped">
                             <thead>
                                 <tr>
-                                    <th>Suite ID</th>
+                                    <th>Suite ID (fix numeration)</th>
                                     <th>Start Time</th>
                                     <th>End Time</th>
-                                    <th>Failed Tests</th>
                                     <th>Passed Tests</th>
+                                    <th>Failed Tests</th>
                                 </tr>            
                             </thead>
                             <tbody>
@@ -472,6 +475,7 @@ var Page = React.createClass({
         const _this = this;
         return function(event){
               var testData = _this.state.data[id].Tests;
+              if(testData.length === 0) return;
               var showAcceptRefect = id === 0 ? true : false;
               _this.setState({
                     data: testData,

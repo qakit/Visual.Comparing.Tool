@@ -1,6 +1,4 @@
 using System;
-using System.Configuration;
-using System.Diagnostics;
 using System.IO;
 using OpenQA.Selenium.Remote;
 
@@ -20,9 +18,19 @@ namespace VCT.Test.Framework
 
 			DirectoryInfo stableDirectory = outputScreenFile.Directory.CreateSubdirectory("Stable");
 			DirectoryInfo diffDirectory = outputScreenFile.Directory.CreateSubdirectory("Diff");
+			Client.Shell.ProjectId = "her";
 
-			
 			//Save testing files anyway
+			var stableHash = Client.Shell.Do.GetStableFileHash(testName, outputScreenFile.Name);
+			var testingHash = Client.Shell.Do.ComputeFileHash(outputScreenFile);
+
+			//if hash for stable and testing files equal just return;
+			if (!string.IsNullOrEmpty(stableHash) && string.Equals(stableHash, testingHash, StringComparison.InvariantCultureIgnoreCase))
+			{
+				Client.Shell.Do.SendTestingFiles(null, testName);
+				return true;
+			}
+
 			Client.Shell.Do.SendTestingFiles(outputScreenFile.Directory, testName);
 
 			//get stable files and
@@ -38,6 +46,7 @@ namespace VCT.Test.Framework
 			if (!equal)
 			{
 				Client.Shell.Do.SendDiffFiles(diffDirectory, testName);
+				Client.Shell.Do.SendStableFiles(stableDirectory, testName);
 			}
 			return equal;
 		}
