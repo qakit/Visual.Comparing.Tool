@@ -121,7 +121,7 @@
             margin: 0;            
         }
         
-        .stat.passed .amount {
+        .stat.passed {
             color: #4CAF50;
         }
         
@@ -129,10 +129,18 @@
             color: #4CAF50;
         }
         
-        .stat.failed .amount {
-            color: #F44336;
+        .suite.passed {
+            background: #4CAF50
         }
         
+        .suite.failed {
+            background: #F44336;
+        }
+        
+        .stat.failed {
+            color: #F44336;
+        }
+                
         .info .title {
             display: block;
             height: 30px;
@@ -187,7 +195,7 @@
             cursor: pointer;
         }
         
-        .history-items > div table td {
+        .history-items > div table tr td {
             padding: 0 10px;
             height: 40px;
             line-height: 40px;
