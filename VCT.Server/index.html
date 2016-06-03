@@ -94,6 +94,10 @@
             background-color: #3F51B5;
         }
         
+        .navbar-right{
+            margin: 0
+        }
+        
         .navbar {
             margin-bottom: 0;
         }
@@ -129,12 +133,16 @@
             color: #4CAF50;
         }
         
-        .suite.passed {
-            background: #4CAF50
+        .passed, .failed{
+            
         }
         
-        .suite.failed {
-            background: #F44336;
+        .passed {
+            color: #4CAF50
+        }
+        
+        .failed {
+            color: #F44336;
         }
         
         .stat.failed {
@@ -199,7 +207,9 @@
             padding: 0 10px;
             height: 40px;
             line-height: 40px;
+            border: 0;
         }
+        
         
         .navbar .container-fluid {
             padding: 0;

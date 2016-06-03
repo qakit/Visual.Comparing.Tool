@@ -319,11 +319,13 @@ var HistoryItem = React.createClass({
             color: 'rgba(0,0,0,0.87)',
         };
         
-        var suiteClass = this.props.failed === 0 ? "suite passed" : "suite failed"
+        var suiteClass = this.props.failed === 0 ? "ion-checkmark-circled passed" : "ion-close-circled failed"
+        var statusStyle = {width: '40px', padding: '0', textAlign: 'center'};
         
         return (
             <tr onClick={this.props.clickEventHandler}>
-                <td className={suiteClass}>{this.props.id}</td>
+                <td style={statusStyle}><i className={suiteClass}/></td>
+                <td>{this.props.id}</td>
                 <td>{this.props.dateStarted}</td>
                 <td>{this.props.dateCompleted}</td>
                 <td className="stat passed">{this.props.passed}</td>
@@ -380,6 +382,7 @@ var HistoryContent = React.createClass({
                         <table className="table table-striped">
                             <thead>
                                 <tr>
+                                    <th>Status</th>
                                     <th>Suite ID (fix numeration)</th>
                                     <th>Start Time</th>
                                     <th>End Time</th>

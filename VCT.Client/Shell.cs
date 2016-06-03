@@ -14,7 +14,7 @@ namespace VCT.Client
 	/// </summary>
 	public class Shell
 	{
-		private static string _baseServerAddress = "http://w7ae.ncgc.local:8080/";
+		private static string _baseServerAddress = "http://localhost:9111/";
 		private static string _projectId = "default";
 
 		public static string ServerAddress
