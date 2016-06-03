@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Linq;
 using Config = System.Configuration.ConfigurationManager;
 
@@ -20,14 +21,14 @@ namespace VCT.Server
 		{
 			public string DebugInfo()
 			{
-				return string.Join(" |\r", suiteDirectory.FullName, stable.FullName, testing.FullName, diff.FullName);
+				return string.Join(" |\r", suiteDirectory.FullName, stableDirectory.FullName, testingDirectory.FullName, diffDirectory.FullName);
 			}
 
-			private DirectoryInfo _suiteDirectory;
-			private DirectoryInfo _proj;
-			private DirectoryInfo _stable;
-			private DirectoryInfo _testing;
-			private DirectoryInfo _diff;
+			private readonly DirectoryInfo _suiteDirectory;
+			private readonly DirectoryInfo _projectDirectory;
+			private readonly DirectoryInfo _stableDirectory;
+			private readonly DirectoryInfo _testingDirectory;
+			private readonly DirectoryInfo _diffDirectory;
 
 			/// <summary>
 			/// 
@@ -36,34 +37,34 @@ namespace VCT.Server
 			public Hub(DirectoryInfo suiteDirectory)
 			{
 				_suiteDirectory =		suiteDirectory;
-				_proj =		suiteDirectory.Parent;
-				_stable =	_suiteDirectory.CreateSubdirectory("StableFiles");
-				_testing =	_suiteDirectory.CreateSubdirectory("TestingFiles");
-				_diff =		_suiteDirectory.CreateSubdirectory("DiffFiles");
+				_projectDirectory =		suiteDirectory.Parent;
+				_stableDirectory =	_suiteDirectory.CreateSubdirectory("StableFiles");
+				_testingDirectory =	_suiteDirectory.CreateSubdirectory("TestingFiles");
+				_diffDirectory =		_suiteDirectory.CreateSubdirectory("DiffFiles");
 			}
 
 			public DirectoryInfo suiteDirectory		{ get { return _suiteDirectory; } }
-			public DirectoryInfo proj		{ get { return _proj; } }
-			public DirectoryInfo stable		{ get { return _stable; } }
-			public DirectoryInfo testing	{ get { return _testing; } }
-			public DirectoryInfo diff		{ get { return _diff; } }
+			public DirectoryInfo projectDirectory		{ get { return _projectDirectory; } }
+			public DirectoryInfo stableDirectory		{ get { return _stableDirectory; } }
+			public DirectoryInfo testingDirectory	{ get { return _testingDirectory; } }
+			public DirectoryInfo diffDirectory		{ get { return _diffDirectory; } }
 
 
 			#region old wrapers
 
 			public DirectoryInfo StableTestDirectory(string testName)
 			{
-				return stable.CreateSubdirectory(testName);
+				return stableDirectory.CreateSubdirectory(testName);
 			}
 
 			public DirectoryInfo TestingTestDirectory(string testName)
 			{
-				return testing.CreateSubdirectory(testName);
+				return testingDirectory.CreateSubdirectory(testName);
 			}
 
 			public DirectoryInfo DiffTestDirectory(string testName)
 			{
-				return diff.CreateSubdirectory(testName);
+				return diffDirectory.CreateSubdirectory(testName);
 			}
 
 			#endregion
@@ -76,8 +77,8 @@ namespace VCT.Server
 			if (directoryToSearch == null) directoryToSearch = Root;
 
 			var search = directoryToSearch.GetDirectories("*", SearchOption.AllDirectories)
-							 .Where(d => d.Parent.Name.Equals("StableFiles") &&
-										 d.Name.Equals(testIdentifyer) &&
+							 .Where(d => d.Parent.Name.Equals("StableFiles", StringComparison.InvariantCultureIgnoreCase) &&
+										 d.Name.Equals(testIdentifyer, StringComparison.InvariantCultureIgnoreCase) &&
 										 d.GetFiles().Any())
 							 .OrderBy(d => d.CreationTime);
 			return search.LastOrDefault();
