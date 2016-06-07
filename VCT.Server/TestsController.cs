@@ -142,32 +142,40 @@ namespace VCT.Server
 		{
 			var allProjects = new List<Project>();
 
-			int projectId = 0;
+			int projectId = 1;
 
 			foreach (DirectoryInfo projectDirectory in
 				Storage.Root.GetDirectories("*", SearchOption.TopDirectoryOnly))
 			{
-				int suiteId = 0;
-
 				var suiteResults = new List<Suite>();
+				
+				var suiteDirectories =
+					projectDirectory.GetDirectories("*", SearchOption.TopDirectoryOnly).OrderBy(p => p.CreationTime).Reverse();
+				
+				//start from last one to show newest on the top with correct run id
+				int suiteId = suiteDirectories.Count();
 
-				foreach (var suiteDirectory in projectDirectory.GetDirectories("*", SearchOption.TopDirectoryOnly).OrderBy(p => p.CreationTime).Reverse())
+				foreach (var suiteDirectory in suiteDirectories)
 				{
 					//any suite directory which contain diff/test/stable directories in it
 					var currentSuiteDirectory = new Storage.Hub(suiteDirectory);
+					var latestTestingFile =
+						currentSuiteDirectory.testingDirectory.GetDirectories("*", SearchOption.AllDirectories)
+							.OrderBy(p => p.CreationTime)
+							.LastOrDefault();
 
 					var failed = GetFailedResults(currentSuiteDirectory);
 					var passed = GetPassedTests(currentSuiteDirectory).Length;
 					suiteResults.Add(new Suite
 					{
 						DateStarted = currentSuiteDirectory.suiteDirectory.CreationTime.ToShortTimeString(),
-						DateCompleted = "[ TODO ]",
+						DateCompleted = latestTestingFile == null ? "No Time" : latestTestingFile.CreationTime.ToShortTimeString(),
 						Failed = failed.Count,
 						Passed = passed,
 						Id = suiteId,
 						Tests = failed
 					});
-					suiteId++;
+					suiteId--;
 				}
 
 				allProjects.Add(new Project

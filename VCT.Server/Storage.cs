@@ -84,7 +84,6 @@ namespace VCT.Server
 			return search.LastOrDefault();
 		}
 
-
 		/// <summary>
 		/// Writes info text to history file
 		/// </summary>
