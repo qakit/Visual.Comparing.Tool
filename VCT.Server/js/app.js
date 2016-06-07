@@ -320,7 +320,7 @@ var HistoryItem = React.createClass({
         };
         
         var suiteClass = this.props.failed === 0 ? "ion-checkmark-circled passed" : "ion-close-circled failed"
-        var statusStyle = {width: '40px', padding: '0', textAlign: 'center'};
+        var statusStyle = {width: '40px', padding: 0, textAlign: 'center'};
         
         return (
             <tr onClick={this.props.clickEventHandler}>
@@ -347,13 +347,13 @@ var ProjectItem = React.createClass({
             height: '100%',
             color: 'rgba(0,0,0,0.87)',
         };
-
+        
         return (
             <div className="col-xs-12 col-md-6" style={awesomeStyle} onClick={this.props.clickEventHandler}>
                 <a href="#" className="row run" style={evenMoreAwesomeStyle}>
                     <div className="col-xs-6 info">
-                        <p className="title">Some title with ID: {this.props.id}</p>
-                        <p className="details">Project: {this.props.name}</p>
+                        <p className="title">Project: {this.props.name}</p>
+                        <p className="details">Project description goes here.</p>
                     </div>
                     <div className="col-xs-6 stat suites">
                         <p className="title">Suites</p>
@@ -369,7 +369,6 @@ var HistoryContent = React.createClass({
     render: function(){
         var clickHanlded = this.props.clickEventHandler;
         var projectName = this.props.projectName;
-        console.log(this.props.data);
         return (
             <div>
                 <nav className="navbar navbar-default history">
@@ -383,7 +382,7 @@ var HistoryContent = React.createClass({
                             <thead>
                                 <tr>
                                     <th>Status</th>
-                                    <th>Suite ID (fix numeration)</th>
+                                    <th>Run ID</th>
                                     <th>Start Time</th>
                                     <th>End Time</th>
                                     <th>Passed Tests</th>
@@ -477,9 +476,10 @@ var Page = React.createClass({
     handleHistoryClick: function(id, projectName){
         const _this = this;
         return function(event){
-              var testData = _this.state.data[id].Tests;
+              var correctHistoryItemId = _this.state.data.length - id;
+              var testData = _this.state.data[correctHistoryItemId].Tests;
               if(testData.length === 0) return;
-              var showAcceptRefect = id === 0 ? true : false;
+              var showAcceptRefect = correctHistoryItemId === 0 ? true : false;
               _this.setState({
                     data: testData,
                     content: <ResultsPreviewCotent data={testData} showAcceptRefect = {showAcceptRefect} projectName={projectName}/>
@@ -488,8 +488,9 @@ var Page = React.createClass({
     },
     handleProjectClick: function (id, projectName) {
        const _this = this;
+       
        return function(event){
-              var testData = _this.state.data[id].Suites;
+              var testData = _this.state.data[id - 1].Suites;
               _this.setState({
                     data: testData,
                     content: <HistoryContent data={testData} projectName={projectName} clickEventHandler = {_this.handleHistoryClick}/>

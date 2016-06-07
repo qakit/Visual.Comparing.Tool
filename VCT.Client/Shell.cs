@@ -38,7 +38,6 @@ namespace VCT.Client
 			}
 		}
 
-
 		#region singleton
 
 		private static Shell _singleton;
