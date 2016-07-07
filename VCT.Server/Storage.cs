@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Config = System.Configuration.ConfigurationManager;
@@ -7,74 +8,151 @@ namespace VCT.Server
 {
 	public class Storage
 	{
-		public readonly DirectoryInfo Root;
-		public static Hub Current;
+		public readonly DirectoryInfo StorageDirectory;
 
 		static readonly string HistoryFileName = Config.AppSettings["history"];
 
 		public Storage()
 		{
-			Root = Directory.CreateDirectory(Config.AppSettings["storage"]);
+			StorageDirectory = Directory.CreateDirectory(Config.AppSettings["storage"]);
 		}
 
-		public class Hub //nested bcoz it shouldn't be used without Storage context
+		public List<StorageProject> Projects
 		{
-			public string DebugInfo()
+			get
 			{
-				return string.Join(" |\r", suiteDirectory.FullName, stableDirectory.FullName, testingDirectory.FullName, diffDirectory.FullName);
+				return StorageDirectory.GetDirectories("*", SearchOption.TopDirectoryOnly).Select(d => new StorageProject(d)).ToList();
 			}
+		} 
 
-			private readonly DirectoryInfo _suiteDirectory;
+		public StorageProject Project(string projectId)
+		{
+			return new StorageProject(StorageDirectory.GetDirectories(projectId, SearchOption.TopDirectoryOnly).First());
+		}
+
+		/// <summary>
+		/// Represent a single project in the storage
+		/// </summary>
+		public class StorageProject
+		{
 			private readonly DirectoryInfo _projectDirectory;
-			private readonly DirectoryInfo _stableDirectory;
-			private readonly DirectoryInfo _testingDirectory;
-			private readonly DirectoryInfo _diffDirectory;
+			private readonly DirectoryInfo _suitesDirectory;
+			private readonly DirectoryInfo _stableFilesDirectory;
 
-			/// <summary>
-			/// 
-			/// </summary>
-			/// <param name="suiteDirectory">Suite result directory</param>
-			public Hub(DirectoryInfo suiteDirectory)
+			public StorageProject(DirectoryInfo projectDirectory)
 			{
-				_suiteDirectory =		suiteDirectory;
-				_projectDirectory =		suiteDirectory.Parent;
-				_stableDirectory =	_suiteDirectory.CreateSubdirectory("StableFiles");
-				_testingDirectory =	_suiteDirectory.CreateSubdirectory("TestingFiles");
-				_diffDirectory =		_suiteDirectory.CreateSubdirectory("DiffFiles");
+				_projectDirectory = projectDirectory;
+				_suitesDirectory = projectDirectory.CreateSubdirectory("Suites");
+				_stableFilesDirectory = projectDirectory.CreateSubdirectory("StableFiles");
 			}
 
-			public DirectoryInfo suiteDirectory		{ get { return _suiteDirectory; } }
-			public DirectoryInfo projectDirectory		{ get { return _projectDirectory; } }
-			public DirectoryInfo stableDirectory		{ get { return _stableDirectory; } }
-			public DirectoryInfo testingDirectory	{ get { return _testingDirectory; } }
-			public DirectoryInfo diffDirectory		{ get { return _diffDirectory; } }
+			public DirectoryInfo Directory
+			{
+				get { return _projectDirectory; }
+			}
 
+			public List<ProjectSuite> Suites
+			{
+				get
+				{
+					return _suitesDirectory.GetDirectories("*", SearchOption.TopDirectoryOnly).Select(directory => new ProjectSuite(directory)).ToList();
+				}
+			}
 
-			#region old wrapers
+			public ProjectSuite Suite(string suiteId)
+			{
+				var suiteDirectory = _suitesDirectory.GetDirectories(suiteId, SearchOption.TopDirectoryOnly).FirstOrDefault() ?? _suitesDirectory.CreateSubdirectory(suiteId);
+				return new ProjectSuite(suiteDirectory);
+			}
+
+			public DirectoryInfo StableFiles
+			{
+				get { return _stableFilesDirectory; }
+			}
 
 			public DirectoryInfo StableTestDirectory(string testName)
 			{
-				return stableDirectory.CreateSubdirectory(testName);
+				return _stableFilesDirectory.CreateSubdirectory(testName);
 			}
 
-			public DirectoryInfo TestingTestDirectory(string testName)
+			/// <summary>
+			/// Represent a single suite (run) in the current project
+			/// </summary>
+			public class ProjectSuite
 			{
-				return testingDirectory.CreateSubdirectory(testName);
+				private readonly DirectoryInfo _suiteDirectory;
+				private readonly DirectoryInfo _diffFilesDirectory;
+				private readonly DirectoryInfo _testingFilesDirectory;
+				private readonly DirectoryInfo _stableFilesDirectory;
+
+				public ProjectSuite(DirectoryInfo suiteDirectory)
+				{
+					_suiteDirectory = suiteDirectory;
+
+					_stableFilesDirectory = _suiteDirectory.CreateSubdirectory("StableFiles");
+					_testingFilesDirectory = _suiteDirectory.CreateSubdirectory("TestingFiles");
+					_diffFilesDirectory = _suiteDirectory.CreateSubdirectory("DiffFiles");
+				}
+
+				public DirectoryInfo Directory
+				{
+					get { return _suiteDirectory; }
+				}
+
+				public string DateStarted
+				{
+					get { return _suiteDirectory.CreationTime.ToShortTimeString(); }
+				}
+
+				public string DateCompleted
+				{
+					get
+					{
+						//TODO can be slow!
+						DirectoryInfo lastCreatedFile = TestingFilesDirectory.GetDirectories("*", SearchOption.AllDirectories)
+							.OrderBy(d => d.CreationTime)
+							.LastOrDefault();
+
+						return lastCreatedFile != null ? lastCreatedFile.CreationTime.ToShortTimeString() : "No Time";
+					}
+				}
+
+				public DirectoryInfo StableTestDirectory(string testName)
+				{
+					return _stableFilesDirectory.CreateSubdirectory(testName);
+				}
+
+				public DirectoryInfo TestingTestDirectory(string testName)
+				{
+					return _testingFilesDirectory.CreateSubdirectory(testName);
+				}
+
+				public DirectoryInfo DiffTestDirectory(string testName)
+				{
+					return _diffFilesDirectory.CreateSubdirectory(testName);
+				}
+
+				public DirectoryInfo DiffFilesDirectory
+				{
+					get { return _diffFilesDirectory; }
+				}
+
+				public DirectoryInfo TestingFilesDirectory
+				{
+					get { return _testingFilesDirectory; }
+				}
+
+				public DirectoryInfo StableFilesDirectory
+				{
+					get { return _stableFilesDirectory; }
+				}
 			}
-
-			public DirectoryInfo DiffTestDirectory(string testName)
-			{
-				return diffDirectory.CreateSubdirectory(testName);
-			}
-
-			#endregion
-
 		}
 
 		public DirectoryInfo GetLatestExistingStable(string testIdentifyer, DirectoryInfo directoryToSearch = null)
 		{
 			//TODO: dont search in all, search just in proj dir
-			if (directoryToSearch == null) directoryToSearch = Root;
+			if (directoryToSearch == null) directoryToSearch = StorageDirectory;
 
 			var search = directoryToSearch.GetDirectories("*", SearchOption.AllDirectories)
 							 .Where(d => d.Parent.Name.Equals("StableFiles", StringComparison.InvariantCultureIgnoreCase) &&
@@ -92,7 +170,7 @@ namespace VCT.Server
 		/// <param name="removeIfExists">do we need to remove previous file if it exists (optional. Default - false)</param>
 		public void WriteLog(string projId, string infoText, bool removeIfExists = false)
 		{
-			DirectoryInfo projDir = Root.CreateSubdirectory(projId);
+			DirectoryInfo projDir = StorageDirectory.CreateSubdirectory(projId);
 
 			var historyFile = new FileInfo(Path.Combine(projDir.FullName, HistoryFileName));
 
@@ -104,8 +182,10 @@ namespace VCT.Server
 
 		public void Allocate(string projId, string inceptionTime)
 		{
-			DirectoryInfo branch = Root.CreateSubdirectory(projId).CreateSubdirectory(inceptionTime);
-			Current = new Hub(branch);
+			Project(projId).Suite(inceptionTime);
+
+//			DirectoryInfo branch = StorageDirectory.CreateSubdirectory(projId).CreateSubdirectory(inceptionTime);
+//			Current = new Hub(branch);
 		}
 	}
 }
