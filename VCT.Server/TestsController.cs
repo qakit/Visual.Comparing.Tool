@@ -23,94 +23,87 @@ namespace VCT.Server
 		//private static DirectoryInfo CurrentSessionDir;
 		private Storage Storage = new Storage();
 
-		[HttpGet]
-		[Route("")]
-		public string GetAllTests()
-		{
-			//TODO: maybe here we should print some help for user?
-			return "Returned ALL Previously runned tests (list of folders in Testing directory i think (or DIFF)";
-		}
+//		[HttpGet]
+//		[Route("{projId}/{testId}/stable")]
+//		[Obsolete]
+//		public HttpResponseMessage GetStable(string projId, string testId)
+//		{
+//			var projectDir = CurrentFor(projId).projectDirectory;
+//			return SendFilesToClient(Storage.GetLatestExistingStable(testId, projectDir));
+//		}
+//
+//		[HttpGet]
+//		[Route("{projId}/{testId}/{fileName}/stable")]
+//		public HttpResponseMessage GetStableImage(string projId, string testId, string fileName)
+//		{
+//			var projectDir = CurrentFor(projId).projectDirectory;
+//			return SendFilesToClient(Storage.GetLatestExistingStable(testId, projectDir), fileName);
+//		}
+//
+//		[HttpGet]
+//		[Route("{projId}/{testId}/{fileName}/stable/hash")]
+//		public HttpResponseMessage GetStableImageHash(string projId, string testId, string fileName)
+//		{
+//			var projectDir = CurrentFor(projId).projectDirectory;
+//			return SendHashToClient(Storage.GetLatestExistingStable(testId, projectDir), fileName);
+//		}
+//
+//		[HttpGet]
+//		[Route("{projId}/{testId}/testing")]
+//		public HttpResponseMessage GetTesting(string projId, string testId)
+//		{
+//			return SendFilesToClient(CurrentFor(projId).TestingTestDirectory(testId));
+//		}
+//
+//		[HttpGet]
+//		[Route("{projId}/{testId}/diff")]
+//		public HttpResponseMessage GetDiff(string projId, string testId)
+//		{
+//			return SendFilesToClient(CurrentFor(projId).DiffTestDirectory(testId));
+//		}
 
-		[HttpGet]
-		[Route("{projId}/{testId}/stable")]
-		public HttpResponseMessage GetStable(string projId, string testId)
-		{
-			var projectDir = CurrentFor(projId).projectDirectory;
-			return SendFilesToClient(Storage.GetLatestExistingStable(testId, projectDir));
-		}
+//		[HttpPost]
+//		[Route("{projId}/{testId}/stable")]
+//		public Task<IHttpActionResult> PostStable(string projId, string testId)
+//		{
+//			if (!Request.Content.IsMimeMultipartContent("form-data"))
+//			{
+//				//if request doesn't contain any data just copy testing files to stable files (accept fail)
+//				CurrentFor(projId).DiffTestDirectory(testId).ClearContent();
+//				return UpdateFilesForTest(CurrentFor(projId).TestingTestDirectory(testId), CurrentFor(projId).StableTestDirectory(testId));
+//			}
+//			return GetFilesFromClient(CurrentFor(projId).StableTestDirectory(testId));
+//		}
 
-		[HttpGet]
-		[Route("{projId}/{testId}/{fileName}/stable")]
-		public HttpResponseMessage GetStableImage(string projId, string testId, string fileName)
-		{
-			var projectDir = CurrentFor(projId).projectDirectory;
-			return SendFilesToClient(Storage.GetLatestExistingStable(testId, projectDir), fileName);
-		}
+//		[HttpPost]
+//		[Route("{projId}/{testId}/testing")]
+//		public Task<IHttpActionResult> PostTesting(string projId, string testId)
+//		{
+//			return GetFilesFromClient(CurrentFor(projId).TestingTestDirectory(testId));
+//		}
+//
+//		[HttpPost]
+//		[Route("{projId}/{testId}/diff")]
+//		public Task<IHttpActionResult> PostDiff(string projId, string testId)
+//		{
+//
+//			return GetFilesFromClient(CurrentFor(projId).DiffTestDirectory(testId));
+//		}
 
-		[HttpGet]
-		[Route("{projId}/{testId}/{fileName}/stable/hash")]
-		public HttpResponseMessage GetStableImageHash(string projId, string testId, string fileName)
-		{
-			var projectDir = CurrentFor(projId).projectDirectory;
-			return SendHashToClient(Storage.GetLatestExistingStable(testId, projectDir), fileName);
-		}
-
-		[HttpGet]
-		[Route("{projId}/{testId}/testing")]
-		public HttpResponseMessage GetTesting(string projId, string testId)
-		{
-			return SendFilesToClient(CurrentFor(projId).TestingTestDirectory(testId));
-		}
-
-		[HttpGet]
-		[Route("{projId}/{testId}/diff")]
-		public HttpResponseMessage GetDiff(string projId, string testId)
-		{
-			return SendFilesToClient(CurrentFor(projId).DiffTestDirectory(testId));
-		}
-
-		[HttpPost]
-		[Route("{projId}/{testId}/stable")]
-		public Task<IHttpActionResult> PostStable(string projId, string testId)
-		{
-			if (!Request.Content.IsMimeMultipartContent("form-data"))
-			{
-				//if request doesn't contain any data just copy testing files to stable files (accept fail)
-				CurrentFor(projId).DiffTestDirectory(testId).ClearContent();
-				return UpdateFilesForTest(CurrentFor(projId).TestingTestDirectory(testId), CurrentFor(projId).StableTestDirectory(testId));
-			}
-			return GetFilesFromClient(CurrentFor(projId).StableTestDirectory(testId));
-		}
-
-		[HttpPost]
-		[Route("{projId}/{testId}/testing")]
-		public Task<IHttpActionResult> PostTesting(string projId, string testId)
-		{
-			return GetFilesFromClient(CurrentFor(projId).TestingTestDirectory(testId));
-		}
-
-		[HttpPost]
-		[Route("{projId}/{testId}/diff")]
-		public Task<IHttpActionResult> PostDiff(string projId, string testId)
-		{
-
-			return GetFilesFromClient(CurrentFor(projId).DiffTestDirectory(testId));
-		}
-
-		private Storage.Hub CurrentFor(string projId)
-		{
-			if (Storage.Current != null && Storage.Current.projectDirectory.Name.Equals(projId)) return Storage.Current;//ideal case
-			else //may happend if we have two client session in the same time
-			{
-				var freshestInAProj = Storage.Root
-					.GetDirectories(projId, SearchOption.TopDirectoryOnly).First()
-					.GetDirectories("*", SearchOption.TopDirectoryOnly)
-					.OrderBy(d => d.CreationTime)
-					.Last();
-				Storage.Current = new Storage.Hub(freshestInAProj);
-				return Storage.Current;
-			}
-		}
+//		private Storage.Hub CurrentFor(string projId)
+//		{
+//			if (Storage.Current != null && Storage.Current.projectDirectory.Name.Equals(projId)) return Storage.Current;//ideal case
+//			else //may happend if we have two client session in the same time
+//			{
+//				var freshestInAProj = Storage.StorageDirectory
+//					.GetDirectories(projId, SearchOption.TopDirectoryOnly).First()
+//					.GetDirectories("*", SearchOption.TopDirectoryOnly)
+//					.OrderBy(d => d.CreationTime)
+//					.Last();
+//				Storage.Current = new Storage.Hub(freshestInAProj);
+//				return Storage.Current;
+//			}
+//		}
 
 
 		[HttpPost]
@@ -136,170 +129,170 @@ namespace VCT.Server
 			Console.WriteLine("[{0}] Suite stopped at {0}", projId, finishTime);
 		}
 
-		[HttpGet]
-		[Route("history")]
-		public JsonResult<List<Project>> GetHistory()
-		{
-			var allProjects = new List<Project>();
-
-			int projectId = 1;
-
-			foreach (DirectoryInfo projectDirectory in
-				Storage.Root.GetDirectories("*", SearchOption.TopDirectoryOnly))
-			{
-				var suiteResults = new List<Suite>();
-				
-				var suiteDirectories =
-					projectDirectory.GetDirectories("*", SearchOption.TopDirectoryOnly).OrderBy(p => p.CreationTime).Reverse();
-				
-				//start from last one to show newest on the top with correct run id
-				int suiteId = suiteDirectories.Count();
-
-				foreach (var suiteDirectory in suiteDirectories)
-				{
-					//any suite directory which contain diff/test/stable directories in it
-					var currentSuiteDirectory = new Storage.Hub(suiteDirectory);
-					var latestTestingFile =
-						currentSuiteDirectory.testingDirectory.GetDirectories("*", SearchOption.AllDirectories)
-							.OrderBy(p => p.CreationTime)
-							.LastOrDefault();
-
-					var failed = GetFailedResults(currentSuiteDirectory);
-					var passed = GetPassedTests(currentSuiteDirectory).Length;
-					suiteResults.Add(new Suite
-					{
-						DateStarted = currentSuiteDirectory.suiteDirectory.CreationTime.ToShortTimeString(),
-						DateCompleted = latestTestingFile == null ? "No Time" : latestTestingFile.CreationTime.ToShortTimeString(),
-						Failed = failed.Count,
-						Passed = passed,
-						Id = suiteId,
-						Tests = failed
-					});
-					suiteId--;
-				}
-
-				allProjects.Add(new Project
-				{
-					Suites = suiteResults,
-					Id = projectId,
-					Name = projectDirectory.Name
-				});
-
-				projectId++;
-			}
-
-			return Json(allProjects);
-		}
-
-		[HttpGet]
-		[Route("{projId}/fails")]
-		public JsonResult<List<Test>> GetFails(string projId)
-		{
-			return Json(GetFailedResults(CurrentFor(projId)));
-		}
-
-		private List<Test> GetFailedResults(Storage.Hub node)
-		{
-			var testsResults = new List<Test>();
-
-			//Here we consider that diff directory will be created on any fail! 
-			//No fail, no diff directory!
-			foreach (DirectoryInfo diffDirectory in node.diffDirectory.GetDirectories())
-			{
-				//Get stable directory path
-				var stableFolderPath = Storage.GetLatestExistingStable(diffDirectory.Name, node.suiteDirectory);
-
-				//Get testing directory path
-				var testingFolderPath = (from testing in node.testingDirectory.GetDirectories()
-										 where string.Equals(diffDirectory.Name, testing.Name, StringComparison.InvariantCultureIgnoreCase)
-										 where testing != null
-										 select testing).FirstOrDefault();
-				//Get all images from all directories
-				var stableImages = GetResultImages(stableFolderPath);
-				var testingImages = GetResultImages(testingFolderPath);
-				var diffImages = GetResultImages(diffDirectory);
-
-				//find longest list as all directories might have different number of images so we need to find max one
-				//to make sure that we no iterate throught smallest one
-				//how to avoid this? merge three lists into one excluding all repeated images?
-
-				IEnumerable<FileInfo> longestList = FindLongest(stableImages, testingImages, diffImages);
-
-				List<Tuple> artifactsCollection = new List<Tuple>();
-
-				foreach (FileInfo imageFile in longestList)
-				{
-					var stableFile = GetFileByName(stableImages, imageFile.Name);
-					var testingFile = GetFileByName(testingImages, imageFile.Name);
-					var diffFile = GetFileByName(diffImages, imageFile.Name);
-
-					var stableData = GetAtrifactDescription(stableFile);
-					var testingData = GetAtrifactDescription(testingFile);
-					var diffData = GetAtrifactDescription(diffFile);
-
-					artifactsCollection.Add(new Tuple
-					{
-						StableFile = stableData,
-						TestingFile = testingData,
-						DiffFile = diffData
-					});
-				}
-
-				testsResults.Add(new Test
-				{
-					TestName = diffDirectory.Name,
-					Artifacts = artifactsCollection
-				});
-			}
-
-			#region looks bad, probably need to change
+//		[HttpGet]
+//		[Route("history")]
+//		public JsonResult<List<Project>> GetHistory()
+//		{
+//			var allProjects = new List<Project>();
 //
-//			if (testsResults.Count == 0)
+//			int projectId = 1;
+//
+//			foreach (DirectoryInfo projectDirectory in
+//				Storage.StorageDirectory.GetDirectories("*", SearchOption.TopDirectoryOnly))
 //			{
-//				testsResults.Add(new Test
+//				var suiteResults = new List<Suite>();
+//				
+//				var suiteDirectories =
+//					projectDirectory.GetDirectories("*", SearchOption.TopDirectoryOnly).OrderBy(p => p.CreationTime).Reverse();
+//				
+//				//start from last one to show newest on the top with correct run id
+//				int suiteId = suiteDirectories.Count();
+//
+//				foreach (var suiteDirectory in suiteDirectories)
+//				{
+//					//any suite directory which contain diff/test/stable directories in it
+//					var currentSuiteDirectory = new Storage.Hub(suiteDirectory);
+//					var latestTestingFile =
+//						currentSuiteDirectory.testingDirectory.GetDirectories("*", SearchOption.AllDirectories)
+//							.OrderBy(p => p.CreationTime)
+//							.LastOrDefault();
+//
+//					var failed = GetFailedResults(currentSuiteDirectory);
+//					var passed = GetPassedTests(currentSuiteDirectory).Length;
+//					suiteResults.Add(new Suite
 //					{
-//						TestName = "",
-//						Artifacts = new List<Tuple>
-//							{
-//								new Tuple
-//									{
-//										DiffFile = EmptyArtifact(),
-//										StableFile = EmptyArtifact(),
-//										TestingFile = EmptyArtifact()
-//									}
-//							}
+//						DateStarted = currentSuiteDirectory.suiteDirectory.CreationTime.ToShortTimeString(),
+//						DateCompleted = latestTestingFile == null ? "No Time" : latestTestingFile.CreationTime.ToShortTimeString(),
+//						Failed = failed.Count,
+//						Passed = passed,
+//						Id = suiteId,
+//						Tests = failed
 //					});
+//					suiteId--;
+//				}
+//
+//				allProjects.Add(new Project
+//				{
+//					Suites = suiteResults,
+//					Id = projectId,
+//					Name = projectDirectory.Name
+//				});
+//
+//				projectId++;
 //			}
+//
+//			return Json(allProjects);
+//		}
+//
+//		[HttpGet]
+//		[Route("{projId}/fails")]
+//		public JsonResult<List<FailedTest>> GetFails(string projId)
+//		{
+//			return Json(GetFailedResults(CurrentFor(projId)));
+//		}
+//
+//		public List<FailedTest> GetFailedResults(Storage.Hub node)
+//		{
+//			var testsResults = new List<FailedTest>();
+//
+//			//Here we consider that diff directory will be created on any fail! 
+//			//No fail, no diff directory!
+//			foreach (DirectoryInfo diffDirectory in node.diffDirectory.GetDirectories())
+//			{
+//				//Get stable directory path
+//				var stableFolderPath = Storage.GetLatestExistingStable(diffDirectory.Name, node.suiteDirectory);
+//
+//				//Get testing directory path
+//				var testingFolderPath = (from testing in node.testingDirectory.GetDirectories()
+//										 where string.Equals(diffDirectory.Name, testing.Name, StringComparison.InvariantCultureIgnoreCase)
+//										 where testing != null
+//										 select testing).FirstOrDefault();
+//				//Get all images from all directories
+//				var stableImages = GetResultImages(stableFolderPath);
+//				var testingImages = GetResultImages(testingFolderPath);
+//				var diffImages = GetResultImages(diffDirectory);
+//
+//				//find longest list as all directories might have different number of images so we need to find max one
+//				//to make sure that we no iterate throught smallest one
+//				//how to avoid this? merge three lists into one excluding all repeated images?
+//
+//				IEnumerable<FileInfo> longestList = FindLongest(stableImages, testingImages, diffImages);
+//
+//				List<Tuple> artifactsCollection = new List<Tuple>();
+//
+//				foreach (FileInfo imageFile in longestList)
+//				{
+//					var stableFile = GetFileByName(stableImages, imageFile.Name);
+//					var testingFile = GetFileByName(testingImages, imageFile.Name);
+//					var diffFile = GetFileByName(diffImages, imageFile.Name);
+//
+//					var stableData = GetAtrifactDescription(stableFile);
+//					var testingData = GetAtrifactDescription(testingFile);
+//					var diffData = GetAtrifactDescription(diffFile);
+//
+//					artifactsCollection.Add(new Tuple
+//					{
+//						StableFile = stableData,
+//						TestingFile = testingData,
+//						DiffFile = diffData
+//					});
+//				}
+//
+//				testsResults.Add(new FailedTest
+//				{
+//					TestName = diffDirectory.Name,
+//					Artifacts = artifactsCollection
+//				});
+//			}
+//
+//			#region looks bad, probably need to change
+////
+////			if (testsResults.Count == 0)
+////			{
+////				testsResults.Add(new Test
+////					{
+////						TestName = "",
+////						Artifacts = new List<Tuple>
+////							{
+////								new Tuple
+////									{
+////										DiffFile = EmptyArtifact(),
+////										StableFile = EmptyArtifact(),
+////										TestingFile = EmptyArtifact()
+////									}
+////							}
+////					});
+////			}
+//
+//			#endregion
+//
+//
+//			return testsResults;
+//		}
+//
+//		[HttpGet]
+//		[Route("{projId}/passes")]
+//		public string[] GetPassedTests(string projId)
+//		{
+//			return GetPassedTests(CurrentFor(projId));
+//		}
 
-			#endregion
-
-
-			return testsResults;
-		}
-
-		[HttpGet]
-		[Route("{projId}/passes")]
-		public string[] GetPassedTests(string projId)
-		{
-			return GetPassedTests(CurrentFor(projId));
-		}
-
-		private string[] GetPassedTests(Storage.Hub node)
-		{
-			var stableDirectories = node.stableDirectory.GetDirectories();
-			var testingDirectories = node.testingDirectory.GetDirectories();
-			var failedDirectories = node.diffDirectory.GetDirectories();
-
-			var distinctList =
-				stableDirectories.Select(d => d.Name)
-					.ToList()
-					.Concat(testingDirectories.Select(d => d.Name).ToList()).Distinct();
-			var passes = (from dir in distinctList
-						  where !failedDirectories.Select(d => d.Name).ToList().Contains(dir)
-						  select dir).ToArray();
-
-			return passes;
-		}
+//		private string[] GetPassedTests(Storage.Hub node)
+//		{
+//			var stableDirectories = node.stableDirectory.GetDirectories();
+//			var testingDirectories = node.testingDirectory.GetDirectories();
+//			var failedDirectories = node.diffDirectory.GetDirectories();
+//
+//			var distinctList =
+//				stableDirectories.Select(d => d.Name)
+//					.ToList()
+//					.Concat(testingDirectories.Select(d => d.Name).ToList()).Distinct();
+//			var passes = (from dir in distinctList
+//						  where !failedDirectories.Select(d => d.Name).ToList().Contains(dir)
+//						  select dir).ToArray();
+//
+//			return passes;
+//		}
 
 		private List<FileInfo> GetResultImages(DirectoryInfo directoryToSearch)
 		{
