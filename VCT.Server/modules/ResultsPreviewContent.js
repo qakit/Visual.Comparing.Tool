@@ -30,7 +30,7 @@ export default React.createClass({
         var suiteId = this.props.params.suiteId;
         var correctTestIndex = testIndex ? testIndex : 0;
         var correctImageIndex = imageIndex ? imageIndex : 0;
-        console.log('load data');
+
         var url = "/api/" + projectId + "/" + suiteId + "/tests";
         $.ajax({
             url: url,
@@ -91,7 +91,6 @@ export default React.createClass({
         var testIndex = this.state.testIndex;
         var currentImageName = this.state.imageName;
         var maxImages = this.state.maxImages;
-        var newPanelState = this.state.testsTreeViewState;
         var id;
 
         if (typeof event === "string") {
@@ -146,6 +145,7 @@ export default React.createClass({
                 cache: false,
                 success: function(data) {
                     //Todo avoid this in future. Just update stable image shown in the left pane
+                    //possibly add new states for right and left images
                     this.loadDataFromServer(this.state.testIndex, this.state.imageIndex);
                 }.bind(this),
                 error: function(xhr, status, err) {
@@ -155,7 +155,11 @@ export default React.createClass({
             return;
         }
         if (id === "toggleList") {
-            newPanelState = this.state.testsTreeViewState === "collapsed" ? "" : "collapsed"
+            var newPanelState = this.state.testsTreeViewState === "collapsed" ? "" : "collapsed"
+            this.setState({
+                testsTreeViewState: newPanelState
+            });
+            return;
         }
 
         if( id === "back") {
@@ -173,8 +177,7 @@ export default React.createClass({
             hasDiff: hasDiff,
             testIndex: testIndex,
             imageName: currentImageName,
-            maxImages: maxImages,
-            testsTreeViewState: newPanelState
+            maxImages: maxImages
         })
     },
     handleScroll: function(e){
@@ -241,6 +244,8 @@ export default React.createClass({
             stableImagePath = "..\\images\\nostable.png";
         }
 
+        //we need to show accept reject if test result has stable image and has diff (so stable can be updated)
+        //if there is no stable (first run or any other reason) and has testing image (no matter has diff or not)
         var showAcceptReject = ((hasStable && this.state.hasDiff) || (!hasStable && hasTesting))
 
         const acceptClass = `accept${!showAcceptReject && ' disabled' || ''}`;
@@ -281,7 +286,6 @@ export default React.createClass({
                     <a href="#" id="acceptFail" className={acceptClass} onClick={this.handleChildClick}><i id="acceptFail" className="fa fa-check"></i></a>
                     <a href="#" id="rejectFail" className={rejectClass} onClick={this.handleChildClick}><i id="rejectFail" className="fa fa-ban"></i></a>
                 </div>
-
             </div>
         );
     }

@@ -91,8 +91,6 @@ $button-size: 40px;
             color: #999;
             pointer-events: none;
         }
-
-
     }
 
     .navbar-nav{
@@ -112,6 +110,7 @@ $button-size: 40px;
 
     .strange-panel {
         width: 250px;
+        overflow: hidden;
         background-color: white;
         -webkit-transition: width .2s linear;
         -moz-transition: width .2s linear;
