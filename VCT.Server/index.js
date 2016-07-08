@@ -6,6 +6,8 @@ import App from './modules/App'
 import HistoryContent from './modules/HistoryContent'
 import ResultsPreviewContent from './modules/ResultsPreviewContent'
 
+require("./styles.scss")
+
 render(
     <Router history={browserHistory}>
         <Route path="/" component={App}/>

@@ -25,23 +25,24 @@ export default React.createClass({
     componenWillUnmount: function() {
         $(document.body).off('keydown', this.handleKeyDown);
     },
-    loadDataFromServer: function() {
+    loadDataFromServer: function(testIndex, imageIndex) {
         var projectId = this.props.params.projectId;
         var suiteId = this.props.params.suiteId;
-
+        var correctTestIndex = testIndex ? testIndex : 0;
+        var correctImageIndex = imageIndex ? imageIndex : 0;
+        console.log('load data');
         var url = "/api/" + projectId + "/" + suiteId + "/tests";
-        console.log(location.host);
         $.ajax({
             url: url,
             dataType: 'json',
             cache: false,
             success: function(data) {
-                var artifacts = data[0].Artifacts;
-                var imageName = this.getCurrentImageName(artifacts[0]);
+                var artifacts = data[correctTestIndex].Artifacts;
+
+                var imageName = this.getCurrentImageName(artifacts[correctImageIndex]);
                 var maxImages = artifacts.length;
                 var maxTests = data.length;
-                var hasDiff = artifacts[0].DiffFile.Name !== "";
-
+                var hasDiff = artifacts[correctImageIndex].DiffFile.Name !== "";
                 this.setState({
                     testData: data,
                     maxImages: maxImages,
@@ -49,6 +50,8 @@ export default React.createClass({
                     maxTests: maxTests,
                     showDiff: false,
            	        hasDiff: hasDiff,
+                    testIndex: correctTestIndex,
+                    imageIndex: correctImageIndex
                 })
             }.bind(this),
             error: function(xhr, status, err) {
@@ -60,7 +63,6 @@ export default React.createClass({
         var fakeData = fakePreviewData;
         
         var artifacts = fakeData[0].Artifacts;
-        
         var imageName = this.getCurrentImageName(artifacts[0]);
         var maxImages = artifacts.length;
         var maxTests = fakeData.length;
@@ -78,7 +80,8 @@ export default React.createClass({
             //show diff image instead of stable or not
             showDiff: false,
             hasDiff: hasDiff,
-            testData: fakeData
+            testData: fakeData,
+            testsTreeViewState: "collapsed"
         });
     },
     handleChildClick: function(event) {
@@ -88,6 +91,7 @@ export default React.createClass({
         var testIndex = this.state.testIndex;
         var currentImageName = this.state.imageName;
         var maxImages = this.state.maxImages;
+        var newPanelState = this.state.testsTreeViewState;
         var id;
 
         if (typeof event === "string") {
@@ -128,7 +132,6 @@ export default React.createClass({
 
             maxImages = this.state.testData[testIndex].Artifacts.length;
         }
-        //[Route("{projectId}/{suiteId}/{testId}/accept")]
         if (id === "acceptFail") {
             var testName = this.state.testData[this.state.testIndex].TestName;
             var projectName = this.props.params.projectId;
@@ -142,12 +145,22 @@ export default React.createClass({
                 type: 'POST',
                 cache: false,
                 success: function(data) {
-                    console.log(data);
+                    //Todo avoid this in future. Just update stable image shown in the left pane
+                    this.loadDataFromServer(this.state.testIndex, this.state.imageIndex);
                 }.bind(this),
                 error: function(xhr, status, err) {
                     console.error(url, status.err.toString());
                 }.bind(this)
             });
+            return;
+        }
+        if (id === "toggleList") {
+            newPanelState = this.state.testsTreeViewState === "collapsed" ? "" : "collapsed"
+        }
+
+        if( id === "back") {
+            $(document.body).off('keydown', this.handleKeyDown);
+            window.history.back();
             return;
         }
 
@@ -160,7 +173,8 @@ export default React.createClass({
             hasDiff: hasDiff,
             testIndex: testIndex,
             imageName: currentImageName,
-            maxImages: maxImages
+            maxImages: maxImages,
+            testsTreeViewState: newPanelState
         })
     },
     handleScroll: function(e){
@@ -205,46 +219,69 @@ export default React.createClass({
     },
     render: function() {
         const {TestName: testName, Artifacts: artifacts} = this.state.testData[this.state.testIndex];
-        
         const testingImage = this.state.showDiff ? artifacts[this.state.imageIndex].DiffFile : artifacts[this.state.imageIndex].TestingFile;
+        const stableImage = artifacts[this.state.imageIndex].StableFile;
+
         const imageName = this.state.imageName;
 
-        var testingImagePath;
+        var hasTesting = testingImage.RelativePath !== "";
+        var hasStable = stableImage.RelativePath !== "";
 
-        if (testingImage.RelativePath !== "") {
+        var testingImagePath;
+        if (hasTesting) {
             testingImagePath = testingImage.RelativePath;
         } else {
-            if (this.state.showDiff) {
-                testingImagePath = "..\\images\\nodiff.png";
-            } else {
-                testingImagePath = "..\\images\\notesting.png"
-            }
+            testingImagePath = this.state.showDiff ? "..\\images\\nodiff.png" : "..\\images\\notesting.png";
         }
-
-        const stableImage = artifacts[this.state.imageIndex].StableFile;
-        var stableImagePath
-        if (stableImage.RelativePath !== "") {
+        
+        var stableImagePath;
+        if (hasStable) {
             stableImagePath = stableImage.RelativePath;
         } else {
             stableImagePath = "..\\images\\nostable.png";
         }
 
+        var showAcceptReject = ((hasStable && this.state.hasDiff) || (!hasStable && hasTesting))
+
+        const acceptClass = `accept${!showAcceptReject && ' disabled' || ''}`;
+        const rejectClass = `reject${!showAcceptReject && ' disabled' || ''}`;
+
+        const { imageIndex, maxImages, hasDiff, showDiff } = this.state;        
+        const diffClass = !hasDiff && 'disabled';
+        const diffIconClass = showDiff ? "fa fa-eye-slash" : "fa fa-eye";
+
         return (
-            <div className="flexChild columnParent"> 
+            <div className="flexChild columnParent preview"> 
                 <nav className="navbar navbar-default">
                     <div className="container-fluid">
-                        <NavigationResultBar 
-                            clickEvent={this.handleChildClick}
-                            showDiff = {this.state.showDiff}
-                            testName = {testName}
-                            currentImageIndex = {this.state.imageIndex}
-                            maxImages = {this.state.maxImages}
-                            hasDiff = {this.state.hasDiff}
-                            showAcceptReject = {this.state.hasDiff}
-                        />
+                        <div className="navbar navbar-default history" id="bs-example-navbar-collapse-1">
+                            <ul className="nav navbar-nav">
+                                <li><a href="#" id="back" onClick={this.handleChildClick}><i id="back" className="fa fa-arrow-left"></i></a></li>
+                                <li><p className="navbar-text">{testName}</p></li>
+                            </ul>
+                            <ul id="toggleList" className="nav navbar-nav navbar-right">
+                                <li><a href="#" id="toggleList" onClick={this.handleChildClick}><i id="toggleList" className="fa fa-list"></i></a></li>
+                            </ul>
+                        </div>
                     </div>
                 </nav>
-                <TestResultContainer left={stableImagePath} right={testingImagePath} scrollEvent={this.handleScroll}/>
+                <div className="flexChild rowParent">
+                    <TestResultContainer left={stableImagePath} right={testingImagePath} scrollEvent={this.handleScroll}/>                
+                    <div className={`strange-panel ${this.state.testsTreeViewState} `}>No tests here...</div>                    
+                </div>
+                <div className="control-panel">
+                    <a href="#" id="previousTest" onClick={this.handleChildClick}><i id="previousTest" className="fa fa-step-backward"></i></a>
+                    <a href="#" id="previousFail" onClick={this.handleChildClick}><i id="previousFail" className="fa fa-backward"></i></a>
+                    <span>{`${imageIndex + 1} / ${maxImages}`}</span>
+                    <a href="#" id="nextFail" onClick={this.handleChildClick}><i id="nextFail" className="fa fa-forward"></i></a>
+                    <a href="#" id="nextTest" onClick={this.handleChildClick}><i id="nextTest" className="fa fa-step-forward"></i></a>
+                    <div></div>
+                    <a href="#" id="showDiff" className={diffClass} onClick={this.handleChildClick}><i id="showDiff" className={diffIconClass}></i></a>                    
+                    <div></div>
+                    <a href="#" id="acceptFail" className={acceptClass} onClick={this.handleChildClick}><i id="acceptFail" className="fa fa-check"></i></a>
+                    <a href="#" id="rejectFail" className={rejectClass} onClick={this.handleChildClick}><i id="rejectFail" className="fa fa-ban"></i></a>
+                </div>
+
             </div>
         );
     }
