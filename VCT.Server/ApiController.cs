@@ -5,12 +5,10 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading.Tasks;
 using System.Web.Http;
 using System.Web.Http.Results;
+using VCT.Server.Helpers;
 
 namespace VCT.Server
 {
@@ -67,7 +65,7 @@ namespace VCT.Server
 		[Route("{projectId}/{testId}/stable")]
 		public HttpResponseMessage GetStableTestFiles(string projectId, string testId)
 		{
-			return SendFilesToClient(Storage.Project(projectId).StableFiles.GetDirectories(testId).FirstOrDefault());
+			return WebHelpers.SendFilesToClient(Storage.Project(projectId).StableFiles.GetDirectories(testId).FirstOrDefault());
 		}
 
 		/// <summary>
@@ -81,7 +79,7 @@ namespace VCT.Server
 		[Route("{projectId}/{testId}/{fileName}/stable")]
 		public HttpResponseMessage GetStableTestFile(string projectId, string testId, string fileName)
 		{
-			return SendFilesToClient(Storage.Project(projectId).StableFiles.GetDirectories(testId).FirstOrDefault(), fileName);
+			return WebHelpers.SendFilesToClient(Storage.Project(projectId).StableFiles.GetDirectories(testId).FirstOrDefault(), fileName);
 		}
 
 		/// <summary>
@@ -95,7 +93,7 @@ namespace VCT.Server
 		[Route("{projectId}/{testId}/{fileName}/stable/hash")]
 		public HttpResponseMessage GetStableTestFileHash(string projectId, string testId, string fileName)
 		{
-			return SendHashToClient(Storage.Project(projectId).StableFiles.GetDirectories(testId).FirstOrDefault(), fileName);
+			return WebHelpers.SendHashToClient(Storage.Project(projectId).StableFiles.GetDirectories(testId).FirstOrDefault(), fileName);
 		}
 
 		/// <summary>
@@ -226,69 +224,6 @@ namespace VCT.Server
 			return Ok(new { Message = string.Format("All files have been uploaded successfully to {0} directory", outputDirectory.FullName) });
 		}
 
-		/// <summary>
-		/// Send all files from specified directory to client
-		/// </summary>
-		/// <param name="inputDirectory">Input Directory from which we need send files back</param>
-		/// <param name="fileNameToSend"></param>
-		/// <returns></returns>
-		public HttpResponseMessage SendFilesToClient(DirectoryInfo inputDirectory, string fileNameToSend = "*")
-		{
-			if (inputDirectory == null || !inputDirectory.Exists)
-				return new HttpResponseMessage(HttpStatusCode.NoContent);
-
-			var inputFiles = inputDirectory.GetFiles(fileNameToSend);
-
-			if (!inputFiles.Any()) return new HttpResponseMessage(HttpStatusCode.NoContent);
-
-			var content = new MultipartContent();
-			foreach (FileInfo inputFile in inputFiles)
-			{
-				//possibly bad way and can cause memory problems i think
-				var fs = System.IO.File.Open(inputFile.FullName, FileMode.Open);
-
-				var fileContent = new StreamContent(fs);
-				//GET MIME TYPE HERE SOMEHOW
-				fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("image/jpeg");
-				fileContent.Headers.Add("FileName", inputFile.Name);
-				content.Add(fileContent);
-			}
-
-			var response = new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = content };
-			return response;
-		}
-
-		public HttpResponseMessage SendHashToClient(DirectoryInfo inputDirectory, string fileName)
-		{
-			if (inputDirectory == null || !inputDirectory.Exists)
-				return new HttpResponseMessage(HttpStatusCode.NoContent);
-
-			var inputFiles = inputDirectory.GetFiles(fileName);
-			if (!inputFiles.Any()) return new HttpResponseMessage(HttpStatusCode.NoContent);
-
-			SHA256 hash = SHA256Managed.Create();
-
-			var fileStream = inputFiles[0].Open(FileMode.Open);
-			var hashValue = hash.ComputeHash(fileStream);
-			var result = GetHexByteArray(hashValue);
-
-			fileStream.Close();
-
-			var content = new StringContent(result);
-			return new HttpResponseMessage { Content = content };
-		}
-
-		private string GetHexByteArray(byte[] array)
-		{
-			var builder = new StringBuilder();
-			int i;
-			for (i = 0; i < array.Length; i++)
-			{
-				builder.Append(String.Format("{0:X2}", array[i]));
-			}
-			return builder.ToString();
-		}
-
 		private List<Project> GetProjectsInformation()
 		{
 			var projects = new List<Project>();
@@ -352,23 +287,23 @@ namespace VCT.Server
 						.FirstOrDefault();
 
 				//Get all images from all directories
-				var stableImages = GetResultImages(stableFolderPath);
-				var testingImages = GetResultImages(testingFolderPath);
-				var diffImages = GetResultImages(diffDirectory);
+				var stableImages = Utils.GetResultImages(stableFolderPath);
+				var testingImages = Utils.GetResultImages(testingFolderPath);
+				var diffImages = Utils.GetResultImages(diffDirectory);
 
 				//find longest list as all directories might have different number of images so we need to find max one
 				//to make sure that we no iterate throught smallest one
 				//how to avoid this? merge three lists into one excluding all repeated images?
 
-				IEnumerable<FileInfo> longestList = FindLongest(stableImages, testingImages, diffImages);
+				IEnumerable<FileInfo> longestList = Utils.FindLongest(stableImages, testingImages, diffImages);
 
 				var artifactsCollection = new List<Tuple>();
 
 				foreach (FileInfo imageFile in longestList)
 				{
-					var stableFile = GetFileByName(stableImages, imageFile.Name);
-					var testingFile = GetFileByName(testingImages, imageFile.Name);
-					var diffFile = GetFileByName(diffImages, imageFile.Name);
+					var stableFile = Utils.GetFileByName(stableImages, imageFile.Name);
+					var testingFile = Utils.GetFileByName(testingImages, imageFile.Name);
+					var diffFile = Utils.GetFileByName(diffImages, imageFile.Name);
 
 					var stableData = GetAtrifactDescription(stableFile);
 					var testingData = GetAtrifactDescription(testingFile);
@@ -441,43 +376,6 @@ namespace VCT.Server
 			};
 		}
 
-		/// <summary>
-		/// Search for element in the list by it's possible name
-		/// </summary>
-		/// <param name="listToSearchIn">List of files to search in</param>
-		/// <param name="fileNameToSearch">Expected file name</param>
-		/// <returns><see cref="FileInfo"/> or null if no file exist in the list</returns>
-		private FileInfo GetFileByName(List<FileInfo> listToSearchIn, string fileNameToSearch)
-		{
-			return (from item in listToSearchIn
-					where string.Equals(item.Name, fileNameToSearch, StringComparison.InvariantCultureIgnoreCase)
-					select item).FirstOrDefault();
-		}
-
-		/// <summary>
-		/// Gets the longest list from the specified
-		/// </summary>
-		/// <param name="lists">Lists</param>
-		/// <returns>Longest list</returns>
-		private IEnumerable<FileInfo> FindLongest(params List<FileInfo>[] lists)
-		{
-			var longest = lists[0];
-			for (var i = 1; i < lists.Length; i++)
-			{
-				if (lists[i].Count > longest.Count)
-					longest = lists[i];
-			}
-			return longest;
-		}
-
-		private List<FileInfo> GetResultImages(DirectoryInfo directoryToSearch)
-		{
-			if (directoryToSearch == null) return new List<FileInfo>();
-			var imageFiles = directoryToSearch.GetFiles(new[] { "*.png", "*.bmp", "*.jpeg", "*.jpg", "*.gif" },
-				SearchOption.TopDirectoryOnly);
-			return imageFiles.ToList();
-		}
-
 		private string[] GetFailedTests(Storage.StorageProject.ProjectSuite suite)
 		{
 			return suite.DiffFilesDirectory.GetDirectories().Select(d => d.Name).ToArray();
@@ -498,8 +396,6 @@ namespace VCT.Server
 						  select dir).ToArray();
 
 			return passes;
-		}
-
-		
+		}	
 	}
 }

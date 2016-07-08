@@ -1,10 +1,11 @@
 using System;
 using System.IO;
 using OpenQA.Selenium.Remote;
+using VCT.Test.Framework.Comparers;
 
 namespace VCT.Test.Framework
 {
-	public static class TestCore
+	public static class SampleTestCore
 	{
 		#region Naming Convention
 		public const string Stable = "STABLE";

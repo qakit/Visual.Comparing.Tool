@@ -1,5 +1,4 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using NUnit.Framework;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Remote;
@@ -53,8 +52,8 @@ namespace VCT.Test
 
 			//driver.Manage().Window.Maximize();
 			driver.Navigate().GoToUrl("http://www.google.com/");
-			var equal = TestCore.IsPageScreensAreEqual(driver, outputScreen, TestContext.CurrentContext.Test.FullName);
-			var equal2 = TestCore.IsPageScreensAreEqual(driver, outputScreen2, TestContext.CurrentContext.Test.FullName);
+			var equal = SampleTestCore.IsPageScreensAreEqual(driver, outputScreen, TestContext.CurrentContext.Test.FullName);
+			var equal2 = SampleTestCore.IsPageScreensAreEqual(driver, outputScreen2, TestContext.CurrentContext.Test.FullName);
 
 			Assert.IsTrue(equal);
 		}
@@ -67,7 +66,7 @@ namespace VCT.Test
 
 			//driver.Manage().Window.Maximize();
 			driver.Navigate().GoToUrl("https://vk.com");
-			var equal = TestCore.IsPageScreensAreEqual(driver, outputScreen, TestContext.CurrentContext.Test.FullName);
+			var equal = SampleTestCore.IsPageScreensAreEqual(driver, outputScreen, TestContext.CurrentContext.Test.FullName);
 			
 			Assert.IsTrue(equal);
 		}
@@ -79,7 +78,7 @@ namespace VCT.Test
 
 			//driver.Manage().Window.Maximize();
 			driver.Navigate().GoToUrl("https://yandex.ru");
-			var equal = TestCore.IsPageScreensAreEqual(driver, outputScreen, TestContext.CurrentContext.Test.FullName);
+			var equal = SampleTestCore.IsPageScreensAreEqual(driver, outputScreen, TestContext.CurrentContext.Test.FullName);
 
 			Assert.IsTrue(equal);
 		}

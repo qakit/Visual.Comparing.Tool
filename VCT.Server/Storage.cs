@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Config = System.Configuration.ConfigurationManager;
@@ -9,8 +8,6 @@ namespace VCT.Server
 	public class Storage
 	{
 		public readonly DirectoryInfo StorageDirectory;
-
-		static readonly string HistoryFileName = Config.AppSettings["history"];
 
 		public Storage()
 		{
@@ -148,45 +145,6 @@ namespace VCT.Server
 					get { return _stableFilesDirectory; }
 				}
 			}
-		}
-
-		public DirectoryInfo GetLatestExistingStable(string testIdentifyer, DirectoryInfo directoryToSearch = null)
-		{
-			//TODO: dont search in all, search just in proj dir
-			if (directoryToSearch == null) directoryToSearch = StorageDirectory;
-
-			var search = directoryToSearch.GetDirectories("*", SearchOption.AllDirectories)
-							 .Where(d => d.Parent.Name.Equals("StableFiles", StringComparison.InvariantCultureIgnoreCase) &&
-										 d.Name.Equals(testIdentifyer, StringComparison.InvariantCultureIgnoreCase) &&
-										 d.GetFiles().Any())
-							 .OrderBy(d => d.CreationTime);
-			return search.LastOrDefault();
-		}
-
-		/// <summary>
-		/// Writes info text to history file
-		/// </summary>
-		/// <param name="projId"></param>
-		/// <param name="infoText">text</param>
-		/// <param name="removeIfExists">do we need to remove previous file if it exists (optional. Default - false)</param>
-		public void WriteLog(string projId, string infoText, bool removeIfExists = false)
-		{
-			DirectoryInfo projDir = StorageDirectory.CreateSubdirectory(projId);
-
-			var historyFile = new FileInfo(Path.Combine(projDir.FullName, HistoryFileName));
-
-			using (var writer = new StreamWriter(historyFile.FullName, true))
-			{
-				writer.WriteLine(infoText);
-			}
-		}
-
-		public void Allocate(string projId, string inceptionTime)
-		{
-			Project(projId).Suite(inceptionTime);
-
-//			DirectoryInfo branch = StorageDirectory.CreateSubdirectory(projId).CreateSubdirectory(inceptionTime);
-//			Current = new Hub(branch);
 		}
 	}
 }

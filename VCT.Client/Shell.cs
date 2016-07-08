@@ -86,13 +86,13 @@ namespace VCT.Client
 			SuiteId = "";
 		}
 
-		public void Push(DirectoryInfo dir, string nameOfTest, TestTypes type)
+		private void Push(DirectoryInfo dir, string nameOfTest, TestTypes type)
 		{
 			var restUrl = string.Format("{0}/api/{1}/{2}/{3}/{4}", ServerAddress, ProjectId, SuiteId, nameOfTest, type);
 			SendFilesToServer(dir, restUrl);
 		}
 
-		public bool Pull(DirectoryInfo dir, string nameOfTest, TestTypes type)
+		private bool Pull(DirectoryInfo dir, string nameOfTest, TestTypes type)
 		{
 			var restUrl = string.Format("{0}/api/{1}/{2}/{3}/{4}", ServerAddress, ProjectId, SuiteId, nameOfTest, type);
 			return GetFilesFromServer(dir, restUrl).Result;

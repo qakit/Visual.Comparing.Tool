@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace VCT.Server
+namespace VCT.Server.Helpers
 {
 	public static class Extensions
 	{

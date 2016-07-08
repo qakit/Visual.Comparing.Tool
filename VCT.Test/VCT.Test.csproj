@@ -64,7 +64,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Framework\ImageFileComparer.cs" />
+    <Compile Include="Framework\Comparers\ImageFileComparer.cs" />
     <Compile Include="Framework\ScreenshotMaker.cs" />
     <Compile Include="Framework\TestCore.cs" />
     <Compile Include="FakeTestFixture.cs" />
