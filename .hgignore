@@ -11,6 +11,7 @@ VCT.Server/Storage/*/*
 VCT.Test/bin/*/*
 VCT.Client/bin/*/*
 
+VCT.Server/bkup/*/*
 syntax: glob
 
 *.suo

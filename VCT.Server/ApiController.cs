@@ -162,13 +162,13 @@ namespace VCT.Server
 
 		[HttpPost]
 		[Route("{projId}/suite/start")]
-		public JsonResult<string> SuiteStart(string projId)
+		public string SuiteStart(string projId)
 		{
 			string inceptionTime = DateTime.Now.ToString(DateFormat);
 
 			Storage.Project(projId).Suite(inceptionTime);
 
-			return Json(string.Format("{{SuiteId : {0}}}", inceptionTime));
+			return inceptionTime;
 		}
 
 		[HttpPost]
@@ -308,7 +308,7 @@ namespace VCT.Server
 		{
 			var suites = new List<Suite>();
 			var suiteDirectories =
-				Storage.Project(projectId).Suites.OrderByDescending(d => d.Directory.Name).ToList();
+				Storage.Project(projectId).Suites.OrderBy(d => d.Directory.Name).ToList();
 
 			int suiteId = suiteDirectories.Count;
 

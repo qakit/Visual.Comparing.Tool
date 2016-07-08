@@ -27,7 +27,8 @@ namespace VCT.Server
 
 		public StorageProject Project(string projectId)
 		{
-			return new StorageProject(StorageDirectory.GetDirectories(projectId, SearchOption.TopDirectoryOnly).First());
+			var projectDirectory = StorageDirectory.GetDirectories(projectId, SearchOption.TopDirectoryOnly).FirstOrDefault();
+			return projectDirectory == null ? new StorageProject(StorageDirectory.CreateSubdirectory(projectId)) : new StorageProject(projectDirectory);
 		}
 
 		/// <summary>

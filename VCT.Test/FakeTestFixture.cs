@@ -54,7 +54,7 @@ namespace VCT.Test
 			//driver.Manage().Window.Maximize();
 			driver.Navigate().GoToUrl("http://www.google.com/");
 			var equal = TestCore.IsPageScreensAreEqual(driver, outputScreen, TestContext.CurrentContext.Test.FullName);
-//			var equal2 = TestCore.IsPageScreensAreEqual(driver, outputScreen2, TestContext.CurrentContext.Test.FullName);
+			var equal2 = TestCore.IsPageScreensAreEqual(driver, outputScreen2, TestContext.CurrentContext.Test.FullName);
 
 			Assert.IsTrue(equal);
 		}

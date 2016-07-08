@@ -14,7 +14,6 @@ using Config = System.Configuration.ConfigurationManager;
 
 namespace VCT.Server
 {
-	[RoutePrefix("tests")]
 	public class TestsController : ApiController
 	{
 		public static string LocalStorage = Config.AppSettings["storage"];
@@ -106,28 +105,28 @@ namespace VCT.Server
 //		}
 
 
-		[HttpPost]
-		[Route("{projId}/suite/start")]
-		public void SuiteStart(string projId)
-		{
-			string inceptionTime = DateTime.Now.ToString(DateFormat);
-
-			Storage.Allocate(projId, inceptionTime);
-
-			try { Storage.WriteLog(projId, string.Format("Started: {0}\n", inceptionTime), true); }
-			catch (Exception e) { Console.WriteLine(e.Message); }
-
-			Console.WriteLine("[{0}] Suite started at {1}", projId, inceptionTime);
-		}
-
-		[HttpPost]
-		[Route("{projId}/suite/stop")]
-		public void SuiteStop(string projId)
-		{
-			string finishTime = DateTime.Now.ToString(DateFormat);
-			Storage.WriteLog(projId, string.Format("Completed: {0}\n", finishTime));
-			Console.WriteLine("[{0}] Suite stopped at {0}", projId, finishTime);
-		}
+//		[HttpPost]
+//		[Route("{projId}/suite/start")]
+//		public void SuiteStart(string projId)
+//		{
+//			string inceptionTime = DateTime.Now.ToString(DateFormat);
+//
+//			Storage.Allocate(projId, inceptionTime);
+//
+//			try { Storage.WriteLog(projId, string.Format("Started: {0}\n", inceptionTime), true); }
+//			catch (Exception e) { Console.WriteLine(e.Message); }
+//
+//			Console.WriteLine("[{0}] Suite started at {1}", projId, inceptionTime);
+//		}
+//
+//		[HttpPost]
+//		[Route("{projId}/suite/stop")]
+//		public void SuiteStop(string projId)
+//		{
+//			string finishTime = DateTime.Now.ToString(DateFormat);
+//			Storage.WriteLog(projId, string.Format("Completed: {0}\n", finishTime));
+//			Console.WriteLine("[{0}] Suite stopped at {0}", projId, finishTime);
+//		}
 
 //		[HttpGet]
 //		[Route("history")]
