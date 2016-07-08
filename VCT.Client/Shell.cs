@@ -16,6 +16,7 @@ namespace VCT.Client
 	{
 		private static string _baseServerAddress = "http://localhost:9111/";
 		private static string _projectId = "default";
+		private static string _suiteId = "";
 
 		public static string ServerAddress
 		{
@@ -36,6 +37,12 @@ namespace VCT.Client
 					throw new InvalidDataException("[!] Don't use slash [!]");
 				_projectId = value;
 			}
+		}
+
+		public static string SuiteId
+		{
+			get { return _suiteId; }
+			set { _suiteId = value; }
 		}
 
 		#region singleton
@@ -59,16 +66,35 @@ namespace VCT.Client
 		}
 
 		#endregion
+		
+		/// <summary>
+		/// Inform server that test suite has started
+		/// </summary>
+		public void SuiteStarted()
+		{
+			string url = string.Format("{0}/api/{1}/suite/start", ServerAddress, ProjectId);
+			SuiteId = PostMessage(url, "Suite started").Replace("\"", "");
+		}
+
+		/// <summary>
+		/// Inform server that test suite has completed
+		/// </summary>
+		public void SuiteCompleted()
+		{
+			string url = string.Format("{0}/tests/{1}/suite/stop", ServerAddress, ProjectId);
+			PostMessage(url, "Suite completed");
+			SuiteId = "";
+		}
 
 		public void Push(DirectoryInfo dir, string nameOfTest, TestTypes type)
 		{
-			var restUrl = string.Format("{0}/tests/{1}/{2}/{3}", ServerAddress, ProjectId, nameOfTest, type);
+			var restUrl = string.Format("{0}/api/{1}/{2}/{3}/{4}", ServerAddress, ProjectId, SuiteId, nameOfTest, type);
 			SendFilesToServer(dir, restUrl);
 		}
 
 		public bool Pull(DirectoryInfo dir, string nameOfTest, TestTypes type)
 		{
-			var restUrl = string.Format("{0}/tests/{1}/{2}/{3}", ServerAddress, ProjectId, nameOfTest, type);
+			var restUrl = string.Format("{0}/api/{1}/{2}/{3}/{4}", ServerAddress, ProjectId, SuiteId, nameOfTest, type);
 			return GetFilesFromServer(dir, restUrl).Result;
 		}
 
@@ -114,7 +140,8 @@ namespace VCT.Client
 		public bool GetStableFiles(DirectoryInfo outputStableFilesDirectory, string testName)
 		{
 			//TODO download and put all stable files for specified test to folder;
-			var hasStable = Pull(outputStableFilesDirectory, testName, TestTypes.stable);
+			var pullUrl = string.Format("{0}/api/{1}/{2}/{3}", ServerAddress, ProjectId, testName, TestTypes.stable);
+			var hasStable = GetFilesFromServer(outputStableFilesDirectory, pullUrl).Result;
 
 			if (!hasStable) Push(outputStableFilesDirectory, testName, TestTypes.diff);
 			//we push null content for notify server; crutch but works
@@ -124,7 +151,7 @@ namespace VCT.Client
 
 		public string GetStableFileHash(string testName, string fileName)
 		{
-			var restUrl = string.Format("{0}/tests/{1}/{2}/{3}/stable/hash", ServerAddress, ProjectId, testName, fileName);
+			var restUrl = string.Format("{0}/api/{1}/{2}/{3}/stable/hash", ServerAddress, ProjectId, testName, fileName);
 			return GetResultFromServer(restUrl).Result;
 		}
 
@@ -181,43 +208,22 @@ namespace VCT.Client
 		#endregion
 
 
-		#region logging methods
-
-		/// <summary>
-		/// Inform server that test suite has started
-		/// </summary>
-		public void SuiteStarted()
-		{
-			string url = string.Format("{0}/tests/{1}/suite/start", ServerAddress, ProjectId);
-			PostMessage(url, "Suite started");
-		}
-
-		/// <summary>
-		/// Inform server that test suite has completed
-		/// </summary>
-		public void SuiteCompleted()
-		{
-			string url = string.Format("{0}/tests/{1}/suite/stop", ServerAddress, ProjectId);
-			PostMessage(url, "Suite completed");
-		}
 
 		/// <summary>
 		/// Post message to specified url
 		/// </summary>
 		/// <param name="url">Url to send message</param>
 		/// <param name="message">Message</param>
-		private void PostMessage(string url, string message)
+		private string PostMessage(string url, string message)
 		{
 			Console.WriteLine("Posting message {0}", message);
 			using (var httpClient = new HttpClient())
 			{
 				var content = new StringContent(message);
 				var result = httpClient.PostAsync(url, content).Result;
-				Console.WriteLine(result);
+				return result.Content.ReadAsStringAsync().Result;
 			}
 		}
-
-		#endregion
 
 		#region core
 

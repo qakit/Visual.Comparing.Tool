@@ -34,7 +34,7 @@ namespace VCT.Test.Framework
 			Client.Shell.Do.SendTestingFiles(outputScreenFile.Directory, testName);
 
 			//get stable files and
-			//if there are not stable files for test we need generate diff directory and create it on server side with testing files;
+			//if there are not any stable file for test we need generate diff directory and create it on server side;
 			var success = Client.Shell.Do.GetStableFiles(stableDirectory, testName);
 			if (!success)
 			{
