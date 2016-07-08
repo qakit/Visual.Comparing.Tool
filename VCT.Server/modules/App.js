@@ -33,19 +33,6 @@ export default React.createClass({
             }.bind(this)
         });
     },
-    handleHistoryClick: function(id, projectName){
-        const _this = this;
-        return function(event){
-              var correctHistoryItemId = _this.state.data.length - id;
-              var testData = _this.state.data[correctHistoryItemId].Tests;
-              if(testData.length === 0) return;
-              var showAcceptRefect = correctHistoryItemId === 0 ? true : false;
-              _this.setState({
-                    data: testData,
-                    content: <ResultsPreviewCotent data={testData} showAcceptRefect = {showAcceptRefect} projectName={projectName}/>
-              });
-        }
-    },
     handleProjectClick: function (id, projectName) {
        const _this = this;
        

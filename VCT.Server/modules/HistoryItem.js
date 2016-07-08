@@ -7,7 +7,6 @@ export default React.createClass({
             height: '80px',
             marginTop: '15px',  
         };
-        
         const evenMoreAwesomeStyle = {
             display: 'block',
             width: '100%',
