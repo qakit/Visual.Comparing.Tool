@@ -6,9 +6,6 @@ namespace VCT.Server
 	{
 		public int Id { get; set; }
 		public string Name { get; set; }
-		//remove after moving
-		public List<Suite> Suites { get; set; }
-
 		public int SuitesCount { get; set; }
 	}
 
@@ -20,7 +17,6 @@ namespace VCT.Server
 		public int Failed { get; set; }
 		public int Id { get; set; }
 		public string Name { get; set; }
-		public List<FailedTest> Tests { get; set; } 
 	}
 
 	public class FailedTest

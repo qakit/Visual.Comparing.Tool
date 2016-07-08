@@ -4,13 +4,13 @@ using Microsoft.Owin;
 using Microsoft.Owin.FileSystems;
 using Microsoft.Owin.StaticFiles;
 using Owin;
+using VCT.Server.Helpers;
 using Config = System.Configuration.ConfigurationManager;
 
 namespace VCT.Server
 {
 	public class Startup
 	{
-
 		// This code configures Web API. The Startup class is specified as a type
 		// parameter in the WebApp.Start method.
 		public void Configuration(IAppBuilder appBuilder)
@@ -42,6 +42,7 @@ namespace VCT.Server
 			appBuilder.Use(async (ctx, next) =>
 			{
 				//BAD BAD way to redirect all not api calls to index.html
+				//TODO find another
 				var path = ctx.Request.Path.ToString();
 				if (!path.StartsWith("/bundle.js") && !path.StartsWith("/images") && !path.StartsWith("/Storage"))
 				{
@@ -51,7 +52,7 @@ namespace VCT.Server
 			});
 			appBuilder.UseFileServer(fsOptions);
 
-			appBuilder.UseSimpleLogger(options);
+			appBuilder.Use<SimpleLogger>(options);
 		}
 	}
 }

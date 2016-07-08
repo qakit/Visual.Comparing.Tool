@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace VCT.Server
+namespace VCT.Server.Helpers
 {
 	public class SimpleLoggerOptions
 	{

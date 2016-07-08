@@ -3,7 +3,7 @@ using System.IO;
 using System.Threading;
 using ImageMagick;
 
-namespace VCT.Test.Framework
+namespace VCT.Test.Framework.Comparers
 {
 	public class ImageFileComparer
 	{
