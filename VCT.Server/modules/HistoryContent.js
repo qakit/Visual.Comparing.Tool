@@ -39,7 +39,7 @@ export default React.createClass({
 
         return (
             <div>
-                <nav className="navbar navbar-default history">
+                <nav className="navbar navbar-default">
                     <div className="container-fluid">
                         <HistoryBar />
                     </div>

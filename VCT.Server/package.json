@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "webpack-dev-server --inline --hot --content-base .",
-    "dev": "webpack --watch"
+    "dev": "webpack --watch --optimize-minimize",
+    "production" : "webpack --optimize-minimize"
   },
   "author": "Andrew Egorov",
   "license": "MIT",

@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using Config = System.Configuration.ConfigurationManager;
@@ -97,9 +99,12 @@ namespace VCT.Server
 					get { return _suiteDirectory; }
 				}
 
-				public string DateStarted
+				public DateTime DateStarted
 				{
-					get { return _suiteDirectory.CreationTime.ToShortTimeString(); }
+					get
+					{
+						return GetCreationDate();
+					}
 				}
 
 				public string DateCompleted
@@ -107,12 +112,20 @@ namespace VCT.Server
 					get
 					{
 						//TODO can be slow!
-						DirectoryInfo lastCreatedFile = TestingFilesDirectory.GetDirectories("*", SearchOption.AllDirectories)
+						DirectoryInfo lastCreatedFile = TestingFilesDirectory.GetDirectories("*", SearchOption.TopDirectoryOnly)
 							.OrderBy(d => d.CreationTime)
 							.LastOrDefault();
 
-						return lastCreatedFile != null ? lastCreatedFile.CreationTime.ToShortTimeString() : "No Time";
+						return lastCreatedFile != null ? lastCreatedFile.CreationTime.ToString() : "No Time";
 					}
+				}
+
+				private DateTime GetCreationDate()
+				{
+					var creationDate = _suiteDirectory.Name;
+					var date = DateTime.ParseExact(creationDate, "dd.MM.yyyy_HH.mm.ss", CultureInfo.InvariantCulture);
+
+					return date;
 				}
 
 				public DirectoryInfo StableTestDirectory(string testName)

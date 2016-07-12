@@ -19,7 +19,7 @@ namespace VCT.Test.Framework
 
 			DirectoryInfo stableDirectory = outputScreenFile.Directory.CreateSubdirectory("Stable");
 			DirectoryInfo diffDirectory = outputScreenFile.Directory.CreateSubdirectory("Diff");
-			Client.Shell.ProjectId = "her";
+			Client.Shell.ProjectId = "TestProject";
 
 			//Save testing files anyway
 			var stableHash = Client.Shell.Do.GetStableFileHash(testName, outputScreenFile.Name);
