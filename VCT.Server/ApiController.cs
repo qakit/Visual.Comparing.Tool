@@ -188,7 +188,8 @@ namespace VCT.Server
 			try
 			{
 				//get suites and sort them in asc order
-				var suites = Storage.Project(projectId).Suites;
+				var suites = Storage.Project(projectId).Suites.OrderBy(s => s.DateStarted);
+
 				foreach (Storage.StorageProject.ProjectSuite suite in suites)
 				{
 					var tests = suite.StableFilesDirectory.GetDirectories("*", SearchOption.TopDirectoryOnly);
@@ -243,7 +244,7 @@ namespace VCT.Server
 		{
 			var suites = new List<Suite>();
 			var suiteDirectories =
-				Storage.Project(projectId).Suites.OrderBy(d => d.Directory.Name).ToList();
+				Storage.Project(projectId).Suites.OrderByDescending(d => d.DateStarted).ToList();
 
 			int suiteId = suiteDirectories.Count;
 
@@ -255,7 +256,7 @@ namespace VCT.Server
 				suites.Add(new Suite
 				{
 					DateCompleted = suiteDirectory.DateCompleted,
-					DateStarted = suiteDirectory.DateStarted,
+					DateStarted = suiteDirectory.DateStarted.ToString(),
 					Failed = failed.Length,
 					Passed = passed.Length,
 					Id = suiteId,
@@ -337,11 +338,12 @@ namespace VCT.Server
 			if (artifactFile == null)
 				return EmptyArtifact();
 
+			var random = DateTime.Now.ToString();
 			return new File
 			{
 				Name = artifactFile.Name,
 				Path = artifactFile.FullName,
-				RelativePath = "..\\" + MakeRelativePath(Storage.StorageDirectory.FullName, artifactFile.FullName)
+				RelativePath = "..\\" + MakeRelativePath(Storage.StorageDirectory.FullName, artifactFile.FullName) + "?date=" + random
 			};
 		}
 

@@ -6,9 +6,9 @@ export default React.createClass({
         var clickHanlded = this.props.clickEventHandler;
         return (
             <div>
-                <nav className="navbar navbar-default history">
+                <nav className="navbar navbar-default">
                     <div className="container-fluid">
-                        <div className="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                        <div className="navbar navbar-default history" id="bs-example-navbar-collapse-1">
                             <ul className="nav navbar-nav">
                                 <li><p className="navbar-text icon"><i className="ion-clock"></i></p></li>
                                 <li><p className="navbar-text title">Projects</p></li>
