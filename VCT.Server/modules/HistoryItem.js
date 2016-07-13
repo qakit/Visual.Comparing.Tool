@@ -18,8 +18,11 @@ export default React.createClass({
         var statusStyle = {width: '40px', padding: 0, textAlign: 'center'};
         var projectId = this.props.projectId;
         var suiteId = this.props.suiteId;
+        var failed = this.props.failed;
 
         var handleHistoryItemClick = function(){
+            //no need to show anything in case if there wasn't any fail
+            if(failed === 0) return;
             var url = "/" + projectId + "/" + suiteId;
             browserHistory.push(url);
         }
