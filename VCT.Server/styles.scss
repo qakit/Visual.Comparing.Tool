@@ -1,6 +1,8 @@
+$accent-base: #3f51b5;
 $accent: #303f9f;
 $accept: #4CAF50;
 $reject: #F44336;
+$text: #333;
 
 $button-size: 40px;
 
@@ -335,9 +337,64 @@ body {
         -ms-transition: width .2s linear;
         -o-transition: width .2s linear;
         transition: width .2s linear;
+
+        > a {
+            display: block;
+            height: 30px;
+            line-height: 30px;
+            color: $text;            
+
+            overflow: hidden;
+
+            > span:first-child {
+                display: block;
+                width: 30px;
+                text-align: center;
+                float: left;
+            }
+
+            > span:last-child {
+                width: calc(100% - 30px);
+                float: right;
+                text-overflow: ellipsis;
+                overflow: hidden;
+                padding-right: 5px;
+                font-size: 13px;
+                opacity: 0.9;
+                line-height: 31px;
+            }
+
+        }
+
+        > a:hover {
+            background-color: $accent-base;
+            color: white;
+        }
+
+        > a.selected {
+            background-color: darken(white, 10%);
+        }
+
+        > a:hover.selected {
+            color: $text;
+        }
+
     }
 
     .strange-panel.collapsed {
         width: 0px;
     }
+}
+
+.navbar-default .navbar-nav>li>a {
+    color: white;
+}
+
+.navbar-default .navbar-nav>li>a:hover {
+    color: darken(white, 3%);
+}
+
+.navbar-text {
+    margin: 0;
+    line-height: 50px;
 }

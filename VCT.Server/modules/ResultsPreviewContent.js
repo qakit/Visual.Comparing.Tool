@@ -220,6 +220,14 @@ export default React.createClass({
             return;
         }
     },
+    handleTestItemClick: function(event){
+        var parent = event.target.parentNode;
+
+        this.setState({
+            testIndex: parent.id,
+            imageIndex: 0
+        });
+    },
     render: function() {
         const {TestName: testName, Artifacts: artifacts} = this.state.testData[this.state.testIndex];
         const testingImage = this.state.showDiff ? artifacts[this.state.imageIndex].DiffFile : artifacts[this.state.imageIndex].TestingFile;
@@ -251,10 +259,9 @@ export default React.createClass({
         const acceptClass = `accept${!showAcceptReject && ' disabled' || ''}`;
         const rejectClass = `reject${!showAcceptReject && ' disabled' || ''}`;
 
-        const { imageIndex, maxImages, hasDiff, showDiff } = this.state;        
+        const { imageIndex, maxImages, hasDiff, showDiff, testData, testIndex } = this.state;        
         const diffClass = !hasDiff && 'disabled';
         const diffIconClass = showDiff ? "fa fa-eye-slash" : "fa fa-eye";
-
         return (
             <div className="flexChild columnParent preview"> 
                 <nav className="navbar navbar-default">
@@ -272,7 +279,10 @@ export default React.createClass({
                 </nav>
                 <div className="flexChild rowParent">
                     <TestResultContainer left={stableImagePath} right={testingImagePath} scrollEvent={this.handleScroll}/>                
-                    <div className={`strange-panel ${this.state.testsTreeViewState} `}>No tests here...</div>                    
+                    <div className={`strange-panel ${this.state.testsTreeViewState} `}>
+                        {testData.map((data, i) => <a key={data.TestName} href="#" onClick={this.handleTestItemClick} id={i} className={`${(testIndex === i && 'selected' || '')}`}>
+                            <span>{i+1}</span>{data.TestName}</a>)}
+                    </div>                    
                 </div>
                 <div className="control-panel">
                     <a href="#" id="previousTest" onClick={this.handleChildClick}><i id="previousTest" className="fa fa-step-backward"></i></a>
