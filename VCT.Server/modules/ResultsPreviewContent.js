@@ -262,6 +262,10 @@ export default React.createClass({
         const { imageIndex, maxImages, hasDiff, showDiff, testData, testIndex } = this.state;        
         const diffClass = !hasDiff && 'disabled';
         const diffIconClass = showDiff ? "fa fa-eye-slash" : "fa fa-eye";
+        const testItemSelectedClass = function(i){
+            return testIndex === i && 'selected' || '';
+        }
+
         return (
             <div className="flexChild columnParent preview"> 
                 <nav className="navbar navbar-default">
@@ -280,8 +284,8 @@ export default React.createClass({
                 <div className="flexChild rowParent">
                     <TestResultContainer left={stableImagePath} right={testingImagePath} scrollEvent={this.handleScroll}/>                
                     <div className={`strange-panel ${this.state.testsTreeViewState} `}>
-                        {testData.map((data, i) => <a key={data.TestName} href="#" onClick={this.handleTestItemClick} id={i} className={`${(testIndex === i && 'selected' || '')}`}>
-                            <span>{i+1}</span>{data.TestName}</a>)}
+                        {testData.map((data, i) => <a key={data.TestName} href="#" onClick={this.handleTestItemClick} id={parseInt(i)} className={`${testItemSelectedClass(i)}`}>
+                            <span>{(i+1)}</span>{data.TestName}</a>)}
                     </div>                    
                 </div>
                 <div className="control-panel">

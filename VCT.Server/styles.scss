@@ -330,7 +330,7 @@ body {
 
     .strange-panel {
         width: 250px;
-        overflow: hidden;
+        overflow: auto;
         background-color: white;
         -webkit-transition: width .2s linear;
         -moz-transition: width .2s linear;
@@ -372,7 +372,7 @@ body {
         }
 
         > a.selected {
-            background-color: darken(white, 10%);
+            background-color: darken(white, 13%);
         }
 
         > a:hover.selected {
