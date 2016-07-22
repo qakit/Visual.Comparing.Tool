@@ -300,6 +300,13 @@ export default React.createClass({
                     <a href="#" id="acceptFail" className={acceptClass} onClick={this.handleChildClick}><i id="acceptFail" className="fa fa-check"></i></a>
                     <a href="#" id="rejectFail" className={rejectClass} onClick={this.handleChildClick}><i id="rejectFail" className="fa fa-ban"></i></a>
                 </div>
+                 {(!this.state.testData || this.state.testData[0].TestName === "") && <div className="loader">
+                    <div className="cssload-loader">
+                        <div className="cssload-inner cssload-one"></div>
+                        <div className="cssload-inner cssload-two"></div>
+                        <div className="cssload-inner cssload-three"></div>
+                    </div>
+                </div>}
             </div>
         );
     }
