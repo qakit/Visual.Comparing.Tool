@@ -2,13 +2,10 @@ import React from 'react'
 import HistoryItem from './HistoryItem'
 import HistoryBar from './HistoryBar'
 
-var fakeHistoryData = [{"DateStarted":"","DateCompleted":"","Passed":0,"Failed":0,"Id":0,"Name":"","Tests":null}]
-
 export default React.createClass({
     getInitialState: function(){
-        var fakeData = fakeHistoryData;
         return({
-            data: fakeData,
+            data: [],
             projectId: ""
         })
     },
@@ -73,7 +70,14 @@ export default React.createClass({
                             </tbody>
                         </table>
                     </div>
-                </div> 
+                </div>
+                {(!this.state.data || this.state.data.length == 0) && <div className="loader">
+                    <div className="cssload-loader">
+                        <div className="cssload-inner cssload-one"></div>
+                        <div className="cssload-inner cssload-two"></div>
+                        <div className="cssload-inner cssload-three"></div>
+                    </div>
+                </div>}
             </div>
         );
     }
