@@ -31,8 +31,25 @@ export default React.createClass({
             }.bind(this)
         });
     },
+    removeSuiteHandleClick: function(projectId, suiteId){
+        console.log('removing');
+            var url = "/api/" + projectId + "/" + suiteId + "/delete";
+            $.ajax({
+                url: url,
+                dataType: 'text',
+                type: 'DELETE',
+                cache: false,
+                success: function(data) {
+                    this.loadDataFromServer();
+                }.bind(this),
+                error: function(xhr, status, err) {
+                    console.error(url, status, err.toString());
+                }.bind(this)
+            });
+    },
     render: function(){
         var projId = this.state.projectId;
+        var removeHandle = this.removeSuiteHandleClick;
 
         return (
             <div>
@@ -52,6 +69,7 @@ export default React.createClass({
                                     <th>End Time</th>
                                     <th>Passed Tests</th>
                                     <th>Failed Tests</th>
+                                    <th></th>
                                 </tr>            
                             </thead>
                             <tbody>
@@ -65,6 +83,7 @@ export default React.createClass({
                                             dateStarted={d.DateStarted}
                                             suiteId={d.Name}
                                             projectId={projId}
+                                            handleRemoveClick = {removeHandle}
                                     />
                                 })}
                             </tbody>

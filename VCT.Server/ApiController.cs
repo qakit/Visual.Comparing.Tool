@@ -209,6 +209,24 @@ namespace VCT.Server
 		}
 
 		/// <summary>
+		/// Removes suite from project
+		/// </summary>
+		/// <param name="projectId"></param>
+		/// <param name="suiteId"></param>
+		/// <returns></returns>
+		[HttpDelete]
+		[Route("{projectId}/{suiteId}/delete")]
+		public HttpResponseMessage DeleteSuite(string projectId, string suiteId)
+		{
+			Storage.Project(projectId).Suite(suiteId).Delete();
+			return new HttpResponseMessage
+			{
+				StatusCode = HttpStatusCode.OK,
+				Content = new StringContent(string.Format("Suite {0} has been removed from {1} project.", suiteId, projectId))
+			};
+		}
+
+		/// <summary>
 		/// Get files from client and save them to specified directory
 		/// </summary>
 		/// <param name="outputDirectory">Directory to save files from client</param>

@@ -27,6 +27,12 @@ export default React.createClass({
             browserHistory.push(url);
         }
 
+        var handleClick = this.props.handleRemoveClick;
+        var handleRemoveSuiteClick = function(e){
+            e.stopPropagation();
+            handleClick(projectId, suiteId);
+        }
+
         return (
             <tr onClick={handleHistoryItemClick}>
                 <td style={statusStyle}><i className={suiteClass}/></td>
@@ -35,6 +41,7 @@ export default React.createClass({
                 <td>{this.props.dateCompleted}</td>
                 <td className="stat passed">{this.props.passed}</td>
                 <td className="stat failed">{this.props.failed}</td>
+                <td onClick={handleRemoveSuiteClick} style={statusStyle}><i className="ion-ios-trash"/></td>
             </tr>
         )
     }

@@ -120,6 +120,15 @@ namespace VCT.Server
 					}
 				}
 
+				/// <summary>
+				/// Remove suite directory from project
+				/// </summary>
+				public void Delete()
+				{
+					if (_suiteDirectory != null)
+						_suiteDirectory.Delete(true);
+				}
+
 				private DateTime GetCreationDate()
 				{
 					var creationDate = _suiteDirectory.Name;
