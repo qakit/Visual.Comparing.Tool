@@ -36,9 +36,6 @@
     <StartupObject />
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Magick.NET-AnyCPU">
-      <HintPath>..\Libs\Magick.NET-AnyCPU.dll</HintPath>
-    </Reference>
     <Reference Include="nunit.framework, Version=2.6.3.13283, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Libs\nunit.framework.dll</HintPath>
@@ -64,7 +61,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Framework\Comparers\ImageFileComparer.cs" />
     <Compile Include="Framework\ScreenshotMaker.cs" />
     <Compile Include="Framework\SampleTestCore.cs" />
     <Compile Include="FakeTestFixture.cs" />

@@ -2,37 +2,56 @@
 <project xmlns="http://nant.sf.net/schemas/nant-0.85.xsd" name="build" default="client">
 
 	<property name="root.dir"		value="${project::get-base-directory()}"/>
-
+	<property name="deploy.dir" 	value="${root.dir}/Deploy"/>
+	
 	<property name="srv.dir"		value="${root.dir}/VCT.Server"/>
-	<property name="srv.tempNuget"	value="${srv.dir}/Packages"/>
-	<property name="srv.deploy.dir"	value="${srv.dir}/Deploy"/>
+	<property name="srv.tempNuget" 	value="${srv.dir}/packages"/>
+	<property name="srv.deploy.dir"	value="${deploy.dir}/VCT.Server"/>
 	<property name="srv.name"		value="VCT.Server.exe"/>
 	<property name="srv.path"		value="${srv.deploy.dir}/${srv.name}"/>
-
+	
+	<property name="client.dir"		value="${root.dir}/VCT.Client"/>
+	<property name="client.tempNuget" 	value="${client.dir}/packages"/>
+	<property name="client.deploy.dir"	value="${deploy.dir}/VCT.Client"/>
+	<property name="client.name"		value="VCT.Client.dll"/>
 
 	<target name="nuget" description="Call nuget to pull down server dependencies">
-
 		<!--prepare-->
-		<delete dir="${srv.deploy.dir}" if="${directory::exists(srv.deploy.dir)}"/>
-
-		<!--main part-->
+		<delete dir="${srv.tempNuget}" if="${directory::exists(srv.tempNuget)}"/>
+		<delete dir="${client.tempNuget}" if="${directory::exists(client.tempNuget)}"/>
+		
+		<!-- download dependencies for server -->
 		<exec program="${root.dir}/.nuget/NuGet.exe">
 			<arg value="install" />
 			<arg value="${srv.dir}/packages.config" />
 			<arg value="-OutputDirectory" />
 			<arg value="${srv.tempNuget}" />
 		</exec>
+		
+		<!-- download dependencies for client -->
+		<exec program="${root.dir}/.nuget/NuGet.exe">
+			<arg value="install" />
+			<arg value="${client.dir}/packages.config" />
+			<arg value="-OutputDirectory" />
+			<arg value="${client.tempNuget}" />
+		</exec>
 
-		<!--Choose only necessary libs-->
+		<!-- Copy necessary libs for server to deploy directory -->
 		<copy todir="${srv.deploy.dir}" flatten="true">
 			<fileset>
 				<include name="${srv.tempNuget}/**/net45/*.dll" />
 				<include name="${srv.tempNuget}/Owin.1.0/lib/net40/Owin.dll" />
 			</fileset>
 		</copy>
+		
+		<copy todir="${client.deploy.dir}" flatten="true">
+			<fileset>
+				<include name="${client.tempNuget}/**/net40-client/*.dll" />
+				<include name="${srv.tempNuget}/**/net45/System.Net.Http.Formatting.dll" />
+			</fileset>
+		</copy>
 
 		<!--clean up-->
-		<delete dir="${srv.tempNuget}" if="${directory::exists(srv.tempNuget)}"/>
 		
 	</target>
 
@@ -44,10 +63,9 @@
 
 		<copy todir="${srv.deploy.dir}">
 			<fileset basedir="${srv.dir}">
-				<include name="js/**/*.js" />
 				<include name="images/*.png" />
 				<include name="*.html" />
-				<include name="*.js" />
+				<include name="bundle.js" />
 			</fileset>
 		</copy>
 
@@ -96,20 +114,17 @@
 		</csc>
 	</target>
 
-	<target name="client" depends="server">
+	<target name="client" depends="nuget">
 		
-		<property name="cli.dir"		value="${root.dir}/VCT.Client"/>
-		<property name="cli.deploy.dir"	value="${cli.dir}/Deploy"/>
-		<property name="cli.name"		value="VCT.Client.dll"/>
+		
 		
 		<!--here we just reuse some dll from server-->
-		<copy file="${srv.deploy.dir}/System.Net.Http.dll" tofile="${cli.deploy.dir}/System.Net.Http.dll"/>
-		<copy file="${srv.deploy.dir}/System.Net.Http.Formatting.dll" tofile="${cli.deploy.dir}/System.Net.Http.Formatting.dll"/>
+		<copy file="${root.dir}/Libs/System.Net.Http.dll"	tofile="${client.deploy.dir}/System.Net.Http.dll"/>
 		
-		<csc target="library" output="${cli.deploy.dir}\${cli.name}"
+		<csc target="library" output="${client.deploy.dir}\${client.name}"
 			warnaserror="false" noconfig="true" warninglevel="0" unsafe="true">
 
-			<sources failonempty="true" basedir="${cli.dir}">
+			<sources failonempty="true" basedir="${client.dir}">
 				<include name="**/*.cs"/>
 				<include name="*.cs"/>
 			</sources>
@@ -119,14 +134,15 @@
 				<include name="System.dll" />
 				<include name="System.Core.dll" />
 				<include name="System.Data.dll" />
+				<include name="System.Drawing.dll" />
 				<include name="System.Data.DataSetExtensions.dll" />
 				<include name="System.Xml.dll" />
 				<include name="System.Xml.Linq.dll" />
 
-				<include name="${cli.deploy.dir}/System.Net.Http.dll" />
-				<include name="${cli.deploy.dir}/System.Net.Http.Formatting.dll" />
+				<include name="${client.deploy.dir}/System.Net.Http.dll" />
+				<include name="${client.deploy.dir}/System.Net.Http.Formatting.dll" />
+				<include name="${client.deploy.dir}/Magick.NET-Q16-AnyCPU.dll" />
 			</references>
 		</csc>
 	</target>
-
 </project>
