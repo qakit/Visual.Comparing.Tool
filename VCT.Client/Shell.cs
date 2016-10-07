@@ -16,6 +16,7 @@ namespace VCT.Client
 	{
 		private static string _baseServerAddress = "http://localhost:9111/";
 		private static string _projectId = "default";
+		private static string _suiteId = "";
 
 		public static string ServerAddress
 		{
@@ -36,6 +37,12 @@ namespace VCT.Client
 					throw new InvalidDataException("[!] Don't use slash [!]");
 				_projectId = value;
 			}
+		}
+
+		public static string SuiteId
+		{
+			get { return _suiteId; }
+			set { _suiteId = value; }
 		}
 
 		#region singleton
@@ -59,16 +66,41 @@ namespace VCT.Client
 		}
 
 		#endregion
-
-		public void Push(DirectoryInfo dir, string nameOfTest, TestTypes type)
+		
+		/// <summary>
+		/// Inform server that test suite has started
+		/// </summary>
+		public void SuiteStarted()
 		{
-			var restUrl = string.Format("{0}/tests/{1}/{2}/{3}", ServerAddress, ProjectId, nameOfTest, type);
+			string url = string.Format("{0}/api/{1}/suite/start", ServerAddress, ProjectId);
+			SuiteId = PostMessage(url, "Suite started").Replace("\"", "");
+		}
+
+		/// <summary>
+		/// Inform server that test suite has completed
+		/// </summary>
+		public void SuiteCompleted()
+		{
+			string url = string.Format("{0}/tests/{1}/suite/stop", ServerAddress, ProjectId);
+			PostMessage(url, "Suite completed");
+			SuiteId = "";
+		}
+
+		private void Push(DirectoryInfo dir, string nameOfTest, TestTypes type)
+		{
+			var restUrl = string.Format("{0}/api/{1}/{2}/{3}/{4}", ServerAddress, ProjectId, SuiteId, nameOfTest, type);
 			SendFilesToServer(dir, restUrl);
 		}
 
-		public bool Pull(DirectoryInfo dir, string nameOfTest, TestTypes type)
+		private void Push(FileInfo fileToSend, string nameOfTest, TestTypes type)
 		{
-			var restUrl = string.Format("{0}/tests/{1}/{2}/{3}", ServerAddress, ProjectId, nameOfTest, type);
+			var restUrl = string.Format("{0}/api/{1}/{2}/{3}/{4}", ServerAddress, ProjectId, SuiteId, nameOfTest, type);
+			SendFileToServer(fileToSend, restUrl);
+		}
+
+		private bool Pull(DirectoryInfo dir, string nameOfTest, TestTypes type)
+		{
+			var restUrl = string.Format("{0}/api/{1}/{2}/{3}/{4}", ServerAddress, ProjectId, SuiteId, nameOfTest, type);
 			return GetFilesFromServer(dir, restUrl).Result;
 		}
 
@@ -82,6 +114,16 @@ namespace VCT.Client
 		public void SendTestingFiles(DirectoryInfo testingFilesDirectory, string testName)
 		{
 			Push(testingFilesDirectory, testName, TestTypes.testing);
+		}
+
+		/// <summary>
+		/// Saves testing file to file server
+		/// </summary>
+		/// <param name="testingFile">File which you want to save to the server</param>
+		/// <param name="testName">Unique test name (will be used to search for files/folders on server)</param>
+		public void SendTestingFile(FileInfo testingFile, string testName)
+		{
+			Push(testingFile, testName, TestTypes.testing);
 		}
 
 		/// <summary>
@@ -107,6 +149,17 @@ namespace VCT.Client
 		}
 
 		/// <summary>
+		/// Saves all stable file to file server
+		/// </summary>
+		/// <param name="stableFile">File to send</param>
+		/// <param name="testName">Unique test name (will be used to search for files/folders on server)</param>
+		public void SendStableFile(FileInfo stableFile, string testName)
+		{
+			Push(stableFile, testName, TestTypes.stable);
+			//TODO save all stable files from stable directory to server (with removing old stable files);
+		}
+
+		/// <summary>
 		/// Download all stable files from server to specified directory
 		/// </summary>
 		/// <param name="outputStableFilesDirectory">Directory to put stable files</param>
@@ -114,7 +167,26 @@ namespace VCT.Client
 		public bool GetStableFiles(DirectoryInfo outputStableFilesDirectory, string testName)
 		{
 			//TODO download and put all stable files for specified test to folder;
-			var hasStable = Pull(outputStableFilesDirectory, testName, TestTypes.stable);
+			var pullUrl = string.Format("{0}/api/{1}/{2}/{3}", ServerAddress, ProjectId, testName, TestTypes.stable);
+			var hasStable = GetFilesFromServer(outputStableFilesDirectory, pullUrl).Result;
+
+			if (!hasStable) Push(outputStableFilesDirectory, testName, TestTypes.diff);
+			//we push null content for notify server; crutch but works
+
+			return hasStable;
+		}
+
+		/// <summary>
+		/// Download stable file from server to the specified folder
+		/// </summary>
+		/// <param name="outputStableFilesDirectory">Directory to put stable file</param>
+		/// <param name="fileName">Name of the stable file</param>
+		/// <param name="testName">Unique test name (will be used to search for files/folders on server)</param>
+		/// <returns></returns>
+		public bool GetStableFile(DirectoryInfo outputStableFilesDirectory, string fileName, string testName)
+		{
+			var pullUrl = string.Format("{0}/api/{1}/{2}/{3}/{4}", ServerAddress, ProjectId, testName, fileName, TestTypes.stable);
+			var hasStable = GetFilesFromServer(outputStableFilesDirectory, pullUrl).Result;
 
 			if (!hasStable) Push(outputStableFilesDirectory, testName, TestTypes.diff);
 			//we push null content for notify server; crutch but works
@@ -124,7 +196,7 @@ namespace VCT.Client
 
 		public string GetStableFileHash(string testName, string fileName)
 		{
-			var restUrl = string.Format("{0}/tests/{1}/{2}/{3}/stable/hash", ServerAddress, ProjectId, testName, fileName);
+			var restUrl = string.Format("{0}/api/{1}/{2}/{3}/stable/hash", ServerAddress, ProjectId, testName, fileName);
 			return GetResultFromServer(restUrl).Result;
 		}
 
@@ -168,6 +240,16 @@ namespace VCT.Client
 		}
 
 		/// <summary>
+		/// Saves specified diff file to the file server
+		/// </summary>
+		/// <param name="diffFile">File to send to the server</param>
+		/// <param name="testName">Unique test name (will be used to search for files/folders on server)</param>
+		public void SendDiffFile(FileInfo diffFile, string testName)
+		{
+			Push(diffFile, testName, TestTypes.diff);
+		}
+
+		/// <summary>
 		/// Download all diff files from server to specified directory
 		/// </summary>
 		/// <param name="outputDiffFilesDirectory">Directory to put diff files</param>
@@ -180,44 +262,21 @@ namespace VCT.Client
 
 		#endregion
 
-
-		#region logging methods
-
-		/// <summary>
-		/// Inform server that test suite has started
-		/// </summary>
-		public void SuiteStarted()
-		{
-			string url = string.Format("{0}/tests/{1}/suite/start", ServerAddress, ProjectId);
-			PostMessage(url, "Suite started");
-		}
-
-		/// <summary>
-		/// Inform server that test suite has completed
-		/// </summary>
-		public void SuiteCompleted()
-		{
-			string url = string.Format("{0}/tests/{1}/suite/stop", ServerAddress, ProjectId);
-			PostMessage(url, "Suite completed");
-		}
-
 		/// <summary>
 		/// Post message to specified url
 		/// </summary>
 		/// <param name="url">Url to send message</param>
 		/// <param name="message">Message</param>
-		private void PostMessage(string url, string message)
+		private string PostMessage(string url, string message)
 		{
 			Console.WriteLine("Posting message {0}", message);
 			using (var httpClient = new HttpClient())
 			{
 				var content = new StringContent(message);
 				var result = httpClient.PostAsync(url, content).Result;
-				Console.WriteLine(result);
+				return result.Content.ReadAsStringAsync().Result;
 			}
 		}
-
-		#endregion
 
 		#region core
 
@@ -248,6 +307,34 @@ namespace VCT.Client
 					var fileContent = new StreamContent(fs);
 					content.Add(fileContent, "file", file.Name);
 				}
+
+				result = httpClient.PostAsync(url, content).Result;
+				Console.WriteLine(result);
+			}
+		}
+
+		/// <summary>
+		/// Saves file to server. Send POST request to specified url with MultipartFormDataContent
+		/// </summary>
+		/// <param name="fileToSend">File which you want to send to the server</param>
+		/// <param name="url">RestAPI url</param>
+		private static void SendFileToServer(FileInfo fileToSend, string url)
+		{
+			using (var httpClient = new HttpClient())
+			{
+				var content = new MultipartFormDataContent();
+				HttpResponseMessage result;
+				fileToSend.Refresh();
+				if (!fileToSend.Exists)
+				{
+					result = httpClient.PostAsync(url, content).Result;
+					Console.WriteLine(result);
+					return;
+				}
+
+				var fs = File.Open(fileToSend.FullName, FileMode.Open);
+				var fileContent = new StreamContent(fs);
+				content.Add(fileContent, "file", fileToSend.Name);
 
 				result = httpClient.PostAsync(url, content).Result;
 				Console.WriteLine(result);
