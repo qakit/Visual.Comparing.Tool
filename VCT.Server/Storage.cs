@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using Config = System.Configuration.ConfigurationManager;
@@ -7,105 +9,164 @@ namespace VCT.Server
 {
 	public class Storage
 	{
-		public readonly DirectoryInfo Root;
-		public static Hub Current;
-
-		static readonly string HistoryFileName = Config.AppSettings["history"];
+		public readonly DirectoryInfo StorageDirectory;
 
 		public Storage()
 		{
-			Root = Directory.CreateDirectory(Config.AppSettings["storage"]);
+			StorageDirectory = Directory.CreateDirectory(Config.AppSettings["storage"]);
 		}
 
-		public class Hub //nested bcoz it shouldn't be used without Storage context
+		public List<StorageProject> Projects
 		{
-			public string DebugInfo()
+			get
 			{
-				return string.Join(" |\r", suiteDirectory.FullName, stableDirectory.FullName, testingDirectory.FullName, diffDirectory.FullName);
+				return StorageDirectory.GetDirectories("*", SearchOption.TopDirectoryOnly).Select(d => new StorageProject(d)).ToList();
 			}
+		} 
 
-			private readonly DirectoryInfo _suiteDirectory;
-			private readonly DirectoryInfo _projectDirectory;
-			private readonly DirectoryInfo _stableDirectory;
-			private readonly DirectoryInfo _testingDirectory;
-			private readonly DirectoryInfo _diffDirectory;
-
-			/// <summary>
-			/// 
-			/// </summary>
-			/// <param name="suiteDirectory">Suite result directory</param>
-			public Hub(DirectoryInfo suiteDirectory)
-			{
-				_suiteDirectory =		suiteDirectory;
-				_projectDirectory =		suiteDirectory.Parent;
-				_stableDirectory =	_suiteDirectory.CreateSubdirectory("StableFiles");
-				_testingDirectory =	_suiteDirectory.CreateSubdirectory("TestingFiles");
-				_diffDirectory =		_suiteDirectory.CreateSubdirectory("DiffFiles");
-			}
-
-			public DirectoryInfo suiteDirectory		{ get { return _suiteDirectory; } }
-			public DirectoryInfo projectDirectory		{ get { return _projectDirectory; } }
-			public DirectoryInfo stableDirectory		{ get { return _stableDirectory; } }
-			public DirectoryInfo testingDirectory	{ get { return _testingDirectory; } }
-			public DirectoryInfo diffDirectory		{ get { return _diffDirectory; } }
-
-
-			#region old wrapers
-
-			public DirectoryInfo StableTestDirectory(string testName)
-			{
-				return stableDirectory.CreateSubdirectory(testName);
-			}
-
-			public DirectoryInfo TestingTestDirectory(string testName)
-			{
-				return testingDirectory.CreateSubdirectory(testName);
-			}
-
-			public DirectoryInfo DiffTestDirectory(string testName)
-			{
-				return diffDirectory.CreateSubdirectory(testName);
-			}
-
-			#endregion
-
-		}
-
-		public DirectoryInfo GetLatestExistingStable(string testIdentifyer, DirectoryInfo directoryToSearch = null)
+		public StorageProject Project(string projectId)
 		{
-			//TODO: dont search in all, search just in proj dir
-			if (directoryToSearch == null) directoryToSearch = Root;
-
-			var search = directoryToSearch.GetDirectories("*", SearchOption.AllDirectories)
-							 .Where(d => d.Parent.Name.Equals("StableFiles", StringComparison.InvariantCultureIgnoreCase) &&
-										 d.Name.Equals(testIdentifyer, StringComparison.InvariantCultureIgnoreCase) &&
-										 d.GetFiles().Any())
-							 .OrderBy(d => d.CreationTime);
-			return search.LastOrDefault();
+			var projectDirectory = StorageDirectory.GetDirectories(projectId, SearchOption.TopDirectoryOnly).FirstOrDefault();
+			return projectDirectory == null ? new StorageProject(StorageDirectory.CreateSubdirectory(projectId)) : new StorageProject(projectDirectory);
 		}
 
 		/// <summary>
-		/// Writes info text to history file
+		/// Represent a single project in the storage
 		/// </summary>
-		/// <param name="projId"></param>
-		/// <param name="infoText">text</param>
-		/// <param name="removeIfExists">do we need to remove previous file if it exists (optional. Default - false)</param>
-		public void WriteLog(string projId, string infoText, bool removeIfExists = false)
+		public class StorageProject
 		{
-			DirectoryInfo projDir = Root.CreateSubdirectory(projId);
+			private readonly DirectoryInfo _projectDirectory;
+			private readonly DirectoryInfo _suitesDirectory;
+			private readonly DirectoryInfo _stableFilesDirectory;
 
-			var historyFile = new FileInfo(Path.Combine(projDir.FullName, HistoryFileName));
-
-			using (var writer = new StreamWriter(historyFile.FullName, true))
+			public StorageProject(DirectoryInfo projectDirectory)
 			{
-				writer.WriteLine(infoText);
+				_projectDirectory = projectDirectory;
+				_suitesDirectory = projectDirectory.CreateSubdirectory("Suites");
+				_stableFilesDirectory = projectDirectory.CreateSubdirectory("StableFiles");
 			}
-		}
 
-		public void Allocate(string projId, string inceptionTime)
-		{
-			DirectoryInfo branch = Root.CreateSubdirectory(projId).CreateSubdirectory(inceptionTime);
-			Current = new Hub(branch);
+			public DirectoryInfo Directory
+			{
+				get { return _projectDirectory; }
+			}
+
+			public List<ProjectSuite> Suites
+			{
+				get
+				{
+					return _suitesDirectory.GetDirectories("*", SearchOption.TopDirectoryOnly).Select(directory => new ProjectSuite(directory)).ToList();
+				}
+			}
+
+			public ProjectSuite Suite(string suiteId)
+			{
+				var suiteDirectory = _suitesDirectory.GetDirectories(suiteId, SearchOption.TopDirectoryOnly).FirstOrDefault() ?? _suitesDirectory.CreateSubdirectory(suiteId);
+				return new ProjectSuite(suiteDirectory);
+			}
+
+			public DirectoryInfo StableFiles
+			{
+				get { return _stableFilesDirectory; }
+			}
+
+			public DirectoryInfo StableTestDirectory(string testName)
+			{
+				return _stableFilesDirectory.CreateSubdirectory(testName);
+			}
+
+			/// <summary>
+			/// Represent a single suite (run) in the current project
+			/// </summary>
+			public class ProjectSuite
+			{
+				private readonly DirectoryInfo _suiteDirectory;
+				private readonly DirectoryInfo _diffFilesDirectory;
+				private readonly DirectoryInfo _testingFilesDirectory;
+				private readonly DirectoryInfo _stableFilesDirectory;
+
+				public ProjectSuite(DirectoryInfo suiteDirectory)
+				{
+					_suiteDirectory = suiteDirectory;
+
+					_stableFilesDirectory = _suiteDirectory.CreateSubdirectory("StableFiles");
+					_testingFilesDirectory = _suiteDirectory.CreateSubdirectory("TestingFiles");
+					_diffFilesDirectory = _suiteDirectory.CreateSubdirectory("DiffFiles");
+				}
+
+				public DirectoryInfo Directory
+				{
+					get { return _suiteDirectory; }
+				}
+
+				public DateTime DateStarted
+				{
+					get
+					{
+						return GetCreationDate();
+					}
+				}
+
+				public string DateCompleted
+				{
+					get
+					{
+						//TODO can be slow!
+						DirectoryInfo lastCreatedFile = TestingFilesDirectory.GetDirectories("*", SearchOption.TopDirectoryOnly)
+							.OrderBy(d => d.CreationTime)
+							.LastOrDefault();
+
+						return lastCreatedFile != null ? lastCreatedFile.CreationTime.ToString() : "No Time";
+					}
+				}
+
+				/// <summary>
+				/// Remove suite directory from project
+				/// </summary>
+				public void Delete()
+				{
+					if (_suiteDirectory != null)
+						_suiteDirectory.Delete(true);
+				}
+
+				private DateTime GetCreationDate()
+				{
+					var creationDate = _suiteDirectory.Name;
+					var date = DateTime.ParseExact(creationDate, "dd.MM.yyyy_HH.mm.ss", CultureInfo.InvariantCulture);
+
+					return date;
+				}
+
+				public DirectoryInfo StableTestDirectory(string testName)
+				{
+					return _stableFilesDirectory.CreateSubdirectory(testName);
+				}
+
+				public DirectoryInfo TestingTestDirectory(string testName)
+				{
+					return _testingFilesDirectory.CreateSubdirectory(testName);
+				}
+
+				public DirectoryInfo DiffTestDirectory(string testName)
+				{
+					return _diffFilesDirectory.CreateSubdirectory(testName);
+				}
+
+				public DirectoryInfo DiffFilesDirectory
+				{
+					get { return _diffFilesDirectory; }
+				}
+
+				public DirectoryInfo TestingFilesDirectory
+				{
+					get { return _testingFilesDirectory; }
+				}
+
+				public DirectoryInfo StableFilesDirectory
+				{
+					get { return _stableFilesDirectory; }
+				}
+			}
 		}
 	}
 }
