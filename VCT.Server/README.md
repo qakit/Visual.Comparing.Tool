@@ -37,4 +37,4 @@ with projects information. Here in future you'll see list of projects in which y
 ## How it looks like...
 
 ![Projects preview page][img]
-[img]: /docimages/ProjectsPagePreview.PNG
+[img]: /VCT.Server/docimages/ProjectsPagePreview.PNG
