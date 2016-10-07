@@ -36,4 +36,5 @@ with projects information. Here in future you'll see list of projects in which y
 
 ## How it looks like...
 
-![ProjectsPagePreview] (https://github.com/qakit/Visual.Comparing.Tool/tree/master/VCT.Server/docimages/ProjectsPagePreview.png)
+![Projects preview page][img]
+[img]: /docimages/ProjectsPagePreview.PNG
