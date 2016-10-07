@@ -36,4 +36,4 @@ with projects information. Here in future you'll see list of projects in which y
 
 ## How it looks like...
 
-![ProjectsPagePreview] (/docimages/ProjectsPagePreview.PNG "Projects Page Preview")
+![ProjectsPagePreview] (/docimages/ProjectsPagePreview.png "Projects Page Preview")
