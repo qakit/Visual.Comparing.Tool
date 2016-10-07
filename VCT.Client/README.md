@@ -43,3 +43,11 @@ From the left side you see 'Stable' image from the rigth side 'Testing' or 'Diff
 want to see.
 
 ## How it looks like
+### Suite Run Results Page
+![Suite Results Page] (/VCT.Client/docimages/ResultsPage.PNG)
+
+### Single Fail Preview (First Run)
+![First Run Preview] (/VCT.Client/docimages/FirstRunPreview.PNG)
+
+### Difference Preview
+![Difference Preview] (/VCT.Client/docimages/DifferencePreview.PNG)
