@@ -1,0 +1,13 @@
+Deploy/
+Output/
+VCT.Test/obj/
+VCT.Test/bin/
+VCT.Client/bin
+VCT.Client/obj/
+VCT.Server/node_modules/
+VCT.Server/bin/
+VCT.Server/obj/
+VCT.Server/Storage/
+packages/
+*.DotSettings.user
+VCT.Server/bundle.js
