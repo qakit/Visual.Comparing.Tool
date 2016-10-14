@@ -10,4 +10,5 @@ VCT.Server/obj/
 VCT.Server/Storage/
 packages/
 *.DotSettings.user
+*.suo
 VCT.Server/bundle.js
