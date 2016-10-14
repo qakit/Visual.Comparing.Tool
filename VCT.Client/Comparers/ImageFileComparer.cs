@@ -24,31 +24,36 @@ namespace VCT.Client.Comparers
 				Console.WriteLine("Images are null, try to refresh");
 			}
 
-			var stableVersionOutputImageFile = new MagickImage(expectedImageFile.FullName);
-			var testingVersionOutputImageFile = new MagickImage(actualImageFile.FullName);
-
-			var outputErrorImage = new MagickImage();
-
-			double errors;
-			try
+			using (var stableVersionOutputImageFile = new MagickImage(expectedImageFile.FullName))
 			{
-				errors = testingVersionOutputImageFile.Compare(stableVersionOutputImageFile, ErrorMetric.Absolute, outputErrorImage);
-			}
-			catch (Exception e)
-			{
-				Console.WriteLine("Error occured during comparing two images. Exception: {0}", e.Message);
-				return false;
+				using (var testingVersionOutputImageFile = new MagickImage(actualImageFile.FullName))
+				{
+					using (var outputErrorImage = new MagickImage())
+					{
+						double errors;
+						try
+						{
+							errors = testingVersionOutputImageFile.Compare(stableVersionOutputImageFile, ErrorMetric.Absolute, outputErrorImage);
+						}
+						catch (Exception e)
+						{
+							Console.WriteLine("Error occured during comparing two images. Exception: {0}", e.Message);
+							return false;
+						}
+
+						if (errors > TrustLevel)
+						{
+							if (diffFile.Directory != null && !diffFile.Directory.Exists) diffFile.Directory.Create();
+
+							outputErrorImage.Write(diffFile);
+							return false;
+						}
+
+						return true;
+					}
+				}
 			}
 
-			if (errors > TrustLevel)
-			{
-				if (diffFile.Directory != null && !diffFile.Directory.Exists) diffFile.Directory.Create();
-
-				outputErrorImage.Write(diffFile);
-				return false;
-			}
-
-			return true;
 		}
 
 		internal static bool ComparingFilesAreEqual(FileInfo expectedImageFile, FileInfo actualImageFile, DirectoryInfo diffDirectory)
