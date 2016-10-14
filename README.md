@@ -19,6 +19,7 @@ Currently it's your responsibility to make screenshot, but lately this method ca
 
 For now only one use case of using this tool - it's comparing images e.g. screenshot based testing. 
 Below sample usage scenario (more about [configuring server](/VCT.Server/README.md)/[client](/VCT.Client/README.md) described in documentation):
+
 1. Run server on remote/local machine which is available from any place where you run your tests 
 (e.g. in CI network);
 2. Create test library. Add reference to client library (configure it, set server path);
