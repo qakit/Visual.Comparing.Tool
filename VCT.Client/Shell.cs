@@ -6,6 +6,8 @@ using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
+using VCT.Sdk;
 
 namespace VCT.Client
 {
@@ -194,10 +196,23 @@ namespace VCT.Client
 			return hasStable;
 		}
 
-		public string GetStableFileHash(string testName, string fileName)
+		public async Task<string> GetStableFileHash(string testName, string fileName, TestInfo testInfo)
 		{
 			var restUrl = string.Format("{0}/api/{1}/{2}/{3}/stable/hash", ServerAddress, ProjectId, testName, fileName);
-			return GetResultFromServer(restUrl).Result;
+
+			using (var httpClient = new HttpClient())
+			{
+				var stringContent = new StringContent(JsonConvert.SerializeObject(testInfo), Encoding.UTF8, "application/json");
+				var result = httpClient.PostAsync(restUrl, stringContent).Result;
+				if (result.StatusCode == HttpStatusCode.NoContent)
+				{
+					return string.Empty;
+				}
+
+				return await result.Content.ReadAsStringAsync();
+			}
+
+//			return GetResultFromServer(restUrl).Result;
 		}
 
 		/// <summary>

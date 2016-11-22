@@ -8,6 +8,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using System.Web.Http;
 using System.Web.Http.Results;
+using Newtonsoft.Json;
 using VCT.Sdk;
 using VCT.Sdk.Extensions;
 using VCT.Server.Helpers;
@@ -91,10 +92,12 @@ namespace VCT.Server
 		/// <param name="testId">test id /name of the test/ in the project</param>
 		/// <param name="fileName">name of the file to which hash must be returned</param>
 		/// <returns></returns>
-		[HttpGet]
+		[HttpPost]
 		[Route("{projectId}/{testId}/{fileName}/stable/hash")]
 		public HttpResponseMessage GetStableTestFileHash(string projectId, string testId, string fileName)
 		{
+			var request = Request.Content;
+			var deserialized = JsonConvert.DeserializeObject<TestInfo>(request.ReadAsStringAsync().Result);
 			return WebHelpers.SendHashToClient(Storage.Project(projectId).StableFiles.GetDirectories(testId).FirstOrDefault(), fileName);
 		}
 

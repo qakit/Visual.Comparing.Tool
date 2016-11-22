@@ -62,7 +62,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Framework\ScreenshotMaker.cs" />
-    <Compile Include="Framework\SampleTestCore.cs" />
     <Compile Include="FakeTestFixture.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

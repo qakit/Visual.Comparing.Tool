@@ -74,5 +74,21 @@ namespace VCT.Sdk
 				SearchOption.TopDirectoryOnly);
 			return imageFiles.ToList();
 		}
+
+		public static FileInfo GetUniqueFileName(FileInfo filePath)
+		{
+			int count = 1;
+
+			string fileNameOnly = Path.GetFileNameWithoutExtension(filePath.FullName);
+			string extension = Path.GetExtension(filePath.FullName);
+			FileInfo newFullPath = filePath;
+
+			while (newFullPath.Exists)
+			{
+				string tempFileName = string.Format("{0}({1})", fileNameOnly, count++);
+				newFullPath = new FileInfo(Path.Combine(filePath.Directory.FullName, tempFileName + extension));
+			}
+			return newFullPath;
+		}
 	}
 }

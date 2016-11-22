@@ -10,8 +10,11 @@ namespace VCT.Client.Modules
 {
 	public class Comparing
 	{
-		public Comparing(string projectName)
+		private readonly TestInfo _testInfo;
+
+		public Comparing(string projectName, TestInfo testInfo)
 		{
+			_testInfo = testInfo;
 			Shell.ProjectId = projectName;
 		}
 
@@ -20,15 +23,21 @@ namespace VCT.Client.Modules
 		/// </summary>
 		/// <param name="testingImageFile"></param>
 		/// <returns></returns>
-		public bool CompareImageToStable(FileInfo testingImageFile, string testName)
+		public bool CompareImageToStable(FileInfo testingImageFile)
 		{
-			var stableHash = Shell.Do.GetStableFileHash(testName, testingImageFile.Name);
+			//TODO:
+			//1. Ask for hash if hash equal when all is OK (send corresponding message so server could use stable image as testing image on preview)
+			//2. If hash different send current image file to server! and let the server compare images and send you request
+			//3. In case of multiple files send all files
+			string testName = _testInfo.TestName;
+
+			var stableHash = Shell.Do.GetStableFileHash(testName, _testInfo.Artifacts[0].Name, _testInfo).Result;
 			var testingHash = Utils.ComputeFileHash(testingImageFile);
 
 			//if hash for stable and testing files equal just return;
 			if (!string.IsNullOrEmpty(stableHash) && string.Equals(stableHash, testingHash, StringComparison.InvariantCultureIgnoreCase))
 			{
-				Shell.Do.SendTestingFiles(null, testName);
+				Shell.Do.SendTestingFiles(null, _testInfo.TestName);
 				return true;
 			}
 
@@ -74,7 +83,7 @@ namespace VCT.Client.Modules
 
 			foreach (FileInfo image in images)
 			{
-				if (!CompareImageToStable(image, testName))
+				if (!CompareImageToStable(image))
 					equal = false;
 			}
 
