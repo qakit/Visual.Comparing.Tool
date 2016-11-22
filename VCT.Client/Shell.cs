@@ -201,34 +201,6 @@ namespace VCT.Client
 		}
 
 		/// <summary>
-		/// Computes hash for current file
-		/// </summary>
-		/// <param name="testingFile"></param>
-		/// <returns></returns>
-		public string ComputeFileHash(FileInfo testingFile)
-		{
-			SHA256 hash = SHA256Managed.Create();
-
-			var fileStream = testingFile.Open(FileMode.Open);
-			var hashValue = hash.ComputeHash(fileStream);
-			var result = GetHexByteArray(hashValue);
-
-			fileStream.Close();
-			return result;
-		}
-
-		private string GetHexByteArray(byte[] array)
-		{
-			var builder = new StringBuilder();
-			int i;
-			for (i = 0; i < array.Length; i++)
-			{
-				builder.Append(String.Format("{0:X2}", array[i]));
-			}
-			return builder.ToString();
-		}
-
-		/// <summary>
 		/// Saves all diff files from specified directory to file server
 		/// </summary>
 		/// <param name="diffFilesDirectory">Directory in which diff files are placed</param>

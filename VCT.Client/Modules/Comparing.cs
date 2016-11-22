@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using VCT.Client.Comparers;
+using VCT.Sdk;
+using VCT.Sdk.Extensions;
 
 namespace VCT.Client.Modules
 {
@@ -21,7 +23,7 @@ namespace VCT.Client.Modules
 		public bool CompareImageToStable(FileInfo testingImageFile, string testName)
 		{
 			var stableHash = Shell.Do.GetStableFileHash(testName, testingImageFile.Name);
-			var testingHash = Shell.Do.ComputeFileHash(testingImageFile);
+			var testingHash = Utils.ComputeFileHash(testingImageFile);
 
 			//if hash for stable and testing files equal just return;
 			if (!string.IsNullOrEmpty(stableHash) && string.Equals(stableHash, testingHash, StringComparison.InvariantCultureIgnoreCase))

@@ -4,6 +4,8 @@ VCT.Test/obj/
 VCT.Test/bin/
 VCT.Client/bin
 VCT.Client/obj/
+VCT.Sdk/bin
+VCT.Sdk/obj/
 VCT.Server/node_modules/
 VCT.Server/bin/
 VCT.Server/obj/

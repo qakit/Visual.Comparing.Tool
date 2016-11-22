@@ -52,13 +52,18 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Comparers\ImageFileComparer.cs" />
-    <Compile Include="Extensions.cs" />
     <Compile Include="Modules\Comparing.cs" />
     <Compile Include="Shell.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\VCT.Sdk\VCT.Sdk.csproj">
+      <Project>{77bc9f8d-4d6f-4a95-9d0a-eda6ba2ecf75}</Project>
+      <Name>VCT.Sdk</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />

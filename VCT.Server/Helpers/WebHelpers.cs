@@ -1,11 +1,9 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Security.Cryptography;
-using System.Text;
+using VCT.Sdk;
 
 namespace VCT.Server.Helpers
 {
@@ -57,27 +55,10 @@ namespace VCT.Server.Helpers
 			var inputFiles = inputDirectory.GetFiles(fileName);
 			if (!inputFiles.Any()) return new HttpResponseMessage(HttpStatusCode.NoContent);
 
-			SHA256 hash = SHA256Managed.Create();
+			var hash = Utils.ComputeFileHash(inputFiles[0]);
 
-			var fileStream = inputFiles[0].Open(FileMode.Open);
-			var hashValue = hash.ComputeHash(fileStream);
-			var result = GetHexByteArray(hashValue);
-
-			fileStream.Close();
-
-			var content = new StringContent(result);
+			var content = new StringContent(hash);
 			return new HttpResponseMessage { Content = content };
-		}
-
-		private static string GetHexByteArray(byte[] array)
-		{
-			var builder = new StringBuilder();
-			int i;
-			for (i = 0; i < array.Length; i++)
-			{
-				builder.Append(String.Format("{0:X2}", array[i]));
-			}
-			return builder.ToString();
 		}
 	}
 }

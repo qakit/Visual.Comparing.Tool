@@ -8,6 +8,8 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using System.Web.Http;
 using System.Web.Http.Results;
+using VCT.Sdk;
+using VCT.Sdk.Extensions;
 using VCT.Server.Helpers;
 
 namespace VCT.Server
