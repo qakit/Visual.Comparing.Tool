@@ -32,40 +32,56 @@ namespace VCT.Client.Modules
 			string testName = _testInfo.TestName;
 
 			var stableHash = Shell.Do.GetStableFileHash(testName, _testInfo.Artifacts[0].Name, _testInfo).Result;
-			var testingHash = Utils.ComputeFileHash(testingImageFile);
-
-			//if hash for stable and testing files equal just return;
-			if (!string.IsNullOrEmpty(stableHash) && string.Equals(stableHash, testingHash, StringComparison.InvariantCultureIgnoreCase))
-			{
-				Shell.Do.SendTestingFiles(null, _testInfo.TestName);
-				return true;
-			}
-
-			DirectoryInfo stableDirectory = testingImageFile.Directory.CreateSubdirectory("Stable");
-			DirectoryInfo diffDirectory = testingImageFile.Directory.CreateSubdirectory("Diff");
-
-			//get stable files and
-			//if there are not any stable file for test we need generate diff directory and create it on server side;
-			var success = Shell.Do.GetStableFile(stableDirectory, testingImageFile.Name, testName);
-			if (!success)
+			//if hash empty it means that there is no stable file so send testing file with no processing request
+			//TODO send file to server here just for saving as is without comparing
+			if (string.IsNullOrEmpty(stableHash))
 			{
 				Shell.Do.SendTestingFile(testingImageFile, testName);
-				Shell.Do.SendDiffFiles(diffDirectory, testName);
 				return false;
 			}
 
-			var stableImageFile = new FileInfo(Path.Combine(stableDirectory.FullName, testingImageFile.Name));
-			var diffFile = new FileInfo(Path.Combine(diffDirectory.FullName, testingImageFile.Name));
-
-			var equal = CompareImageFiles(testingImageFile, stableImageFile, diffFile);
-			if (!equal)
+			//if hash not empty we must send testing file to server and server must compare it to stable
+			//put stable / testing / diff to correct folders
+			var testingHash = Utils.ComputeFileHash(testingImageFile);
+			if (!string.Equals(stableHash, testingHash))
 			{
-				Shell.Do.SendDiffFile(diffFile, testName);
-				Shell.Do.SendStableFile(stableImageFile, testName);
 				Shell.Do.SendTestingFile(testingImageFile, testName);
+				return false;
 			}
 
-			return equal;
+			Shell.Do.SayTestOkToServer(testName);
+			return true;
+//
+//			//if hash for stable and testing files equal just return;
+//			if (!string.IsNullOrEmpty(stableHash) && string.Equals(stableHash, testingHash, StringComparison.InvariantCultureIgnoreCase))
+//			{
+//				Shell.Do.SendTestingFiles(null, _testInfo.TestName);
+//				return true;
+//			}
+//
+//			DirectoryInfo stableDirectory = testingImageFile.Directory.CreateSubdirectory("Stable");
+//			DirectoryInfo diffDirectory = testingImageFile.Directory.CreateSubdirectory("Diff");
+//
+//			//get stable files and
+//			//if there are not any stable file for test we need generate diff directory and create it on server side;
+//			var success = Shell.Do.GetStableFile(stableDirectory, testingImageFile.Name, testName);
+//			if (!success)
+//			{
+//				Shell.Do.SendTestingFile(testingImageFile, testName);
+//				Shell.Do.SendDiffFiles(diffDirectory, testName);
+//				return false;
+//			}
+//
+//			var stableImageFile = new FileInfo(Path.Combine(stableDirectory.FullName, testingImageFile.Name));
+//			var diffFile = new FileInfo(Path.Combine(diffDirectory.FullName, testingImageFile.Name));
+//
+//			var equal = CompareImageFiles(testingImageFile, stableImageFile, diffFile);
+//			if (!equal)
+//			{
+//				Shell.Do.SendDiffFile(diffFile, testName);
+//				Shell.Do.SendStableFile(stableImageFile, testName);
+//				Shell.Do.SendTestingFile(testingImageFile, testName);
+//			}
 		}
 
 		/// <summary>
@@ -78,7 +94,7 @@ namespace VCT.Client.Modules
 		{
 			var equal = true;
 
-			var images = GetResultImages(testingImagesDirectory);
+			var images = testingImagesDirectory.GetImageFiles();
 			if (images.Count == 0) return false;
 
 			foreach (FileInfo image in images)
@@ -93,14 +109,6 @@ namespace VCT.Client.Modules
 		private bool CompareImageFiles(FileInfo testingImageFile, FileInfo stableImageFile, FileInfo diffFile)
 		{
 			return ImageFileComparer.ComparingFilesAreEqual(stableImageFile, testingImageFile, diffFile);
-		}
-
-		internal static List<FileInfo> GetResultImages(DirectoryInfo directoryToSearch)
-		{
-			if (directoryToSearch == null) return new List<FileInfo>();
-			var imageFiles = directoryToSearch.GetFiles(new[] { "*.png", "*.bmp", "*.jpeg", "*.jpg", "*.gif" },
-				SearchOption.TopDirectoryOnly);
-			return imageFiles.ToList();
 		}
 	}
 }

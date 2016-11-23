@@ -16,6 +16,7 @@ namespace VCT.Server.Entities
 		public Int64 Id { get; set; }
 		public DateTime StartTime { get; set; }
 		public DateTime? EndTime { get; set; }
+		public string Name { get; set; }
 
 		public Int64 ProjectId { get; set; }
 	}
@@ -26,6 +27,17 @@ namespace VCT.Server.Entities
 		public string Name { get; set; }
 	}
 
+	public class StableTestFile
+	{
+		public Int64 Id { get; set; }
+		public string Name { get; set; }
+		public string FullPath { get; set; }
+		public string RelativePath { get; set; }
+
+		public Int64 TestId { get; set; }
+	}
+
+	#region environment tables
 	public class Browser
 	{
 		public Int64 Id { get; set;} 
@@ -45,7 +57,8 @@ namespace VCT.Server.Entities
 		public Int64 BrowserId { get; set; }
 		public Int64 ResolutionId { get; set; }
 	}
-
+	#endregion
+	
 	public class TestRunStatus
 	{
 		public Int64 Id { get; set; }

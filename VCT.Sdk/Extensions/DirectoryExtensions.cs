@@ -36,6 +36,14 @@ namespace VCT.Sdk.Extensions
 			return GetFiles(directory, searchPatterns, SearchOption.AllDirectories);
 		}
 
+		public static List<FileInfo> GetImageFiles(this DirectoryInfo directoryToSearch)
+		{
+			if (directoryToSearch == null) return new List<FileInfo>();
+			var imageFiles = directoryToSearch.GetFiles(new[] { "*.png", "*.bmp", "*.jpeg", "*.jpg", "*.gif" },
+				SearchOption.TopDirectoryOnly);
+			return imageFiles.ToList();
+		}
+
 		public static IEnumerable<FileInfo> GetFiles(this DirectoryInfo directory, string[] searchPatterns,
 			SearchOption option)
 		{

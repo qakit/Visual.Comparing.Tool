@@ -226,6 +226,12 @@ namespace VCT.Client
 			//TODO save all diff files from diff files folder to server (with removing old diff files first)
 		}
 
+
+		public void SayTestOkToServer(string testName)
+		{
+			//TODO
+		}
+
 		/// <summary>
 		/// Saves specified diff file to the file server
 		/// </summary>
@@ -328,6 +334,7 @@ namespace VCT.Client
 			}
 		}
 
+
 		/// <summary>
 		/// Download files from server and put them to specified directory
 		/// </summary>
@@ -382,6 +389,8 @@ namespace VCT.Client
 			testing,
 			diff,
 		}
+
+		
 	}
 
 }

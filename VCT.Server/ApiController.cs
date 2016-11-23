@@ -11,6 +11,7 @@ using System.Web.Http.Results;
 using Newtonsoft.Json;
 using VCT.Sdk;
 using VCT.Sdk.Extensions;
+using VCT.Server.Entities;
 using VCT.Server.Helpers;
 
 namespace VCT.Server
@@ -96,9 +97,24 @@ namespace VCT.Server
 		[Route("{projectId}/{testId}/{fileName}/stable/hash")]
 		public HttpResponseMessage GetStableTestFileHash(string projectId, string testId, string fileName)
 		{
-			var request = Request.Content;
-			var deserialized = JsonConvert.DeserializeObject<TestInfo>(request.ReadAsStringAsync().Result);
-			return WebHelpers.SendHashToClient(Storage.Project(projectId).StableFiles.GetDirectories(testId).FirstOrDefault(), fileName);
+			using (var storage = new StorageContext())
+			{
+//				var project = storage.Projects.FirstOrDefault(p => p.Name == projectId);
+				var test = storage.Tests.FirstOrDefault(t => t.Name == testId);
+				if (test == null) return new HttpResponseMessage(HttpStatusCode.NoContent);
+				var stableFile = storage.StableTestFiles.FirstOrDefault(sf => sf.TestId == test.Id && sf.Name == fileName);
+				if (stableFile == null) return new HttpResponseMessage(HttpStatusCode.NoContent);
+
+				var fileInfo = new FileInfo(stableFile.FullPath);
+
+				var hash = Utils.ComputeFileHash(fileInfo);
+
+				var content = new StringContent(hash);
+				return new HttpResponseMessage {Content = content};
+			}
+//			var request = Request.Content;
+//			var deserialized = JsonConvert.DeserializeObject<TestInfo>(request.ReadAsStringAsync().Result);
+//			return WebHelpers.SendHashToClient(Storage.Project(projectId).StableFiles.GetDirectories(testId).FirstOrDefault(), fileName);
 		}
 
 		/// <summary>
@@ -144,9 +160,82 @@ namespace VCT.Server
 		/// <returns></returns>
 		[HttpPost]
 		[Route("{projectId}/{suiteId}/{testId}/testing")]
-		public Task<IHttpActionResult> PostTesting(string projectId, string suiteId, string testId)
+		public async Task<IHttpActionResult> PostTesting(string projectId, string suiteId, string testId)
 		{
-			return GetFilesFromClient(Storage.Project(projectId).Suite(suiteId).TestingTestDirectory(testId));
+			//TODO
+			//take files from client
+			//find out stable
+			//if no stable put testing to folder and made related records in db
+			//if stable => compare
+			//add diff/testing/stable
+
+			//1. Get files
+			var outputDirectory = Storage.Project(projectId).Suite(suiteId).TestingTestDirectory(testId);
+
+			if (!Request.Content.IsMimeMultipartContent("form-data"))
+			{
+				return BadRequest("Unsupported media type");
+			}
+			if (!outputDirectory.Exists) outputDirectory.Create();
+			var multiPartFormDataStreamProvider = new UploadMultipartFormProvider(outputDirectory.FullName);
+			await Request.Content.ReadAsMultipartAsync(multiPartFormDataStreamProvider);
+
+			//2. Compare each file to stable
+			var files = outputDirectory.GetImageFiles();
+			using (var context = new StorageContext())
+			{
+				var project = context.Projects.FirstOrDefault(p => p.Name == projectId);
+				var test = context.Tests.FirstOrDefault(t => t.Name == testId);
+				if (test == null)
+				{
+					test = context.Tests.Add(new Test {Name = testId});
+					context.SaveChanges();
+				}
+				var suite = context.Suites.FirstOrDefault(s => s.Name == suiteId);
+				var testingArtifactFileType = context.ArtifactFileTypes.FirstOrDefault(aft => aft.Type == "Testing");
+
+				foreach (FileInfo imageFile in files)
+				{
+					var stableFile = context.StableTestFiles.FirstOrDefault(sf => sf.TestId == test.Id && sf.Name == imageFile.Name);
+					if (stableFile == null)
+					{
+						//jut make record that test failed no diff/no testing
+						var relativePath = "..\\" + MakeRelativePath(Storage.StorageDirectory.FullName, imageFile.FullName) + "?date=" +
+						                   DateTime.Now.ToString();
+						var artifact = new ArtifactFile
+						{
+							ArtifactFileTypeId = testingArtifactFileType.Id,
+							FullPath = imageFile.FullName,
+							Name = imageFile.Name,
+							RelativePath = relativePath
+						};
+						if (context.ArtifactFiles.FirstOrDefault(af =>
+							af.FullPath == artifact.FullPath &&
+							af.Name == artifact.Name &&
+							af.RelativePath == artifact.RelativePath) == null)
+						{
+							context.ArtifactFiles.Add(artifact);
+							context.SaveChanges();
+							var testRunStatusInfo = new TestRunStatus
+							{
+								Artifacts = new List<ArtifactFile> {artifact},
+								EnvironmentId = 1,
+								Passed = false,
+								SuiteId = suite.Id,
+								TestId = test.Id
+							};
+
+							context.TestRunStatuses.Add(testRunStatusInfo);
+							context.SaveChanges();
+						}
+					}
+					//compare
+					//put diff and put testing somewhere update db
+				}
+			}
+
+			return Ok(new { Message = string.Format("All files have been uploaded successfully to {0} directory", outputDirectory.FullName) });
+//			return GetFilesFromClient(Storage.Project(projectId).Suite(suiteId).TestingTestDirectory(testId));
 		}
 
 		/// <summary>
@@ -167,11 +256,27 @@ namespace VCT.Server
 		[Route("{projId}/suite/start")]
 		public string SuiteStart(string projId)
 		{
-			string inceptionTime = DateTime.Now.ToString(DateFormat);
+			var dateTime = DateTime.Now;
+			string inceptionTime = dateTime.ToString(DateFormat);
 
 			Storage.Project(projId).Suite(inceptionTime);
+			using (var context = new StorageContext())
+			{
+				var project = context.Projects.FirstOrDefault(p => p.Name == projId);
+				if (project == null)
+				{
+					project = context.Projects.Add(new Entities.Project {Name = projId});
+					context.SaveChanges();
+				}
 
-			return inceptionTime;
+				var suite = context.Suites.FirstOrDefault(s => s.Name == inceptionTime);
+				if (suite == null)
+				{
+					suite = context.Suites.Add(new Entities.Suite {Name = inceptionTime, StartTime = dateTime, ProjectId = project.Id});
+					context.SaveChanges();
+				}
+				return suite.Name;
+			}
 		}
 
 		[HttpPost]

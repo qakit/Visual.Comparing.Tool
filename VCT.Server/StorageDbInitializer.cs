@@ -14,7 +14,13 @@ namespace VCT.Server
 		protected override void Seed(StorageContext context)
 		{
 			//Initialize predefined browsers
-			context.Set<Browser>().AddRange(new List<Browser> {new Browser {Name = "chrome"}, new Browser {Name = "ff"}, new Browser {Name = "ie"}});
+			context.Set<Browser>().
+				AddRange(new List<Browser>
+				{
+					new Browser {Name = "chrome"}, 
+					new Browser {Name = "ff"}, 
+					new Browser {Name = "ie"}
+				});
 
 			//File types
 			context.Set<ArtifactFileType>()
