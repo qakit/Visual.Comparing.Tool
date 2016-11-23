@@ -251,16 +251,29 @@ namespace VCT.Server
 		private List<Project> GetProjectsInformation()
 		{
 			var projects = new List<Project>();
-			var projectDirectories = Storage.Projects;
-			//TODO remove id after all changes
-			int id = 1;
-			foreach (Storage.StorageProject projectDirectory in projectDirectories)
+			using (var context = new StorageContext())
 			{
-				var suitesCount = projectDirectory.Suites.Count;
-				projects.Add(new Project { Id = id, Name = projectDirectory.Directory.Name, SuitesCount = suitesCount });
-				id++;
+				foreach (Entities.Project project in context.Projects)
+				{
+					var suitesCount = (from suite in context.Suites
+						where suite.ProjectId == project.Id
+						select suite).Count();
+					projects.Add(new Project {Id = (int) project.Id, Name = project.Name, SuitesCount = suitesCount});
+				}
 			}
 			return projects;
+
+
+//			var projectDirectories = Storage.Projects;
+//			//TODO remove id after all changes
+//			int id = 1;
+//			foreach (Storage.StorageProject projectDirectory in projectDirectories)
+//			{
+//				var suitesCount = projectDirectory.Suites.Count;
+//				projects.Add(new Project { Id = id, Name = projectDirectory.Directory.Name, SuitesCount = suitesCount });
+//				id++;
+//			}
+//			return projects;
 		}
 
 		private List<Suite> GetSuitesInformation(string projectId)

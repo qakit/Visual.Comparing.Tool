@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using Microsoft.Owin.Hosting;
 using VCT.Server.Entities;
 using Config = System.Configuration.ConfigurationManager;
@@ -15,16 +13,9 @@ namespace VCT.Server
 		{
 			using (var db = new StorageContext())
 			{
-				var artifactTypes = db.ArtifactFileTypes;
-				foreach (ArtifactFileType artifactFileType in artifactTypes)
-				{
-					Console.WriteLine(artifactFileType);
-				}
-				var x = 0;
-
-//				//Add project
-//				db.Projects.Add(new Entities.Project {Name = "Designer"});
-//				db.SaveChanges();
+				//				//Add project
+				db.Projects.Add(new Entities.Project {Name = "Designer"});
+				db.SaveChanges();
 //
 //				//Add suite
 //				var project = (from p in db.Projects
@@ -111,9 +102,9 @@ namespace VCT.Server
 //			} 
 
 
-//			WebApp.Start<Startup>(BaseAddress);
-//			Console.WriteLine("Server started and waiting");
-//			Console.ReadLine();
+			WebApp.Start<Startup>(BaseAddress);
+			Console.WriteLine("Server started and waiting");
+			Console.ReadLine();
 		}
 	}
 }
