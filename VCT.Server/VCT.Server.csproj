@@ -116,6 +116,7 @@
     <Compile Include="Startup.cs" />
     <Compile Include="Storage.cs" />
     <Compile Include="StorageContext.cs" />
+    <Compile Include="StorageDbInitializer.cs" />
     <Compile Include="TestResultFiles.cs" />
   </ItemGroup>
   <ItemGroup>
