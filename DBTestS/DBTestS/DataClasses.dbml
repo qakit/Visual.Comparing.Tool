@@ -1,0 +1,66 @@
+﻿<?xml version="1.0" encoding="utf-8"?><Database Name="VCT" Class="DataClassesDataContext" xmlns="http://schemas.microsoft.com/linqtosql/dbml/2007">
+  <Connection Mode="AppSettings" ConnectionString="Data Source=(LocalDB)\v11.0;AttachDbFilename=|DataDirectory|\VCT.mdf;Integrated Security=True;Connect Timeout=30" SettingsObjectName="DBTestS.Properties.Settings" SettingsPropertyName="VCTConnectionString" Provider="System.Data.SqlClient" />
+  <Table Name="dbo.Browser" Member="Browsers">
+    <Type Name="Browser">
+      <Column Name="BrowserId" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="Browser" Member="BrowserName" Storage="_Browser1" Type="System.String" DbType="NChar(10) NOT NULL" CanBeNull="false" />
+      <Association Name="Browser_Environment" Member="Environments" ThisKey="BrowserId" OtherKey="BrowserId" Type="Environment" />
+    </Type>
+  </Table>
+  <Table Name="dbo.Environment" Member="Environments">
+    <Type Name="Environment">
+      <Column Name="EnvironmentId" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="OSId" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="BrowserId" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="ResolutionId" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Association Name="Environment_StableFile" Member="StableFiles" ThisKey="EnvironmentId" OtherKey="EnvironmentId" Type="StableFile" />
+      <Association Name="Browser_Environment" Member="Browser" ThisKey="BrowserId" OtherKey="BrowserId" Type="Browser" IsForeignKey="true" />
+      <Association Name="Resolution_Environment" Member="Resolution" ThisKey="ResolutionId" OtherKey="ResolutionId" Type="Resolution" IsForeignKey="true" />
+      <Association Name="RunningO_Environment" Member="RunningOS" ThisKey="OSId" OtherKey="OSId" Type="RunningOS" IsForeignKey="true" />
+    </Type>
+  </Table>
+  <Table Name="dbo.Resolution" Member="Resolutions">
+    <Type Name="Resolution">
+      <Column Name="ResolutionId" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="ResolutionWidth" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="ResolutionHeight" Type="System.String" DbType="NChar(10) NOT NULL" CanBeNull="false" />
+      <Association Name="Resolution_Environment" Member="Environments" ThisKey="ResolutionId" OtherKey="ResolutionId" Type="Environment" />
+    </Type>
+  </Table>
+  <Table Name="dbo.Test" Member="Tests">
+    <Type Name="Test">
+      <Column Name="TestId" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="Name" Type="System.String" DbType="NVarChar(50) NOT NULL" CanBeNull="false" />
+      <Association Name="Test_TestResult" Member="TestResults" ThisKey="TestId" OtherKey="TestId" Type="TestResult" />
+      <Association Name="Test_StableFile" Member="StableFiles" ThisKey="TestId" OtherKey="TestId" Type="StableFile" />
+    </Type>
+  </Table>
+  <Table Name="dbo.TestResult" Member="TestResults">
+    <Type Name="TestResult">
+      <Column Name="TestResultId" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="TestId" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="StableFileId" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="FilePath" Type="System.String" DbType="NChar(255) NOT NULL" CanBeNull="false" />
+      <Association Name="Test_TestResult" Member="Test" ThisKey="TestId" OtherKey="TestId" Type="Test" IsForeignKey="true" />
+      <Association Name="StableFile_TestResult" Member="StableFile" ThisKey="StableFileId" OtherKey="StableFileId" Type="StableFile" IsForeignKey="true" />
+    </Type>
+  </Table>
+  <Table Name="dbo.RunningOS" Member="RunningOS">
+    <Type Name="RunningOS">
+      <Column Name="OSId" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="OS" Type="System.String" DbType="NChar(10) NOT NULL" CanBeNull="false" />
+      <Association Name="RunningO_Environment" Member="Environments" ThisKey="OSId" OtherKey="OSId" Type="Environment" />
+    </Type>
+  </Table>
+  <Table Name="dbo.StableFile" Member="StableFiles">
+    <Type Name="StableFile">
+      <Column Name="StableFileId" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="TestId" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="EnvironmentId" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="FilePath" Type="System.String" DbType="NVarChar(255) NOT NULL" CanBeNull="false" />
+      <Association Name="StableFile_TestResult" Member="TestResults" ThisKey="StableFileId" OtherKey="StableFileId" Type="TestResult" />
+      <Association Name="Environment_StableFile" Member="Environment" ThisKey="EnvironmentId" OtherKey="EnvironmentId" Type="Environment" IsForeignKey="true" />
+      <Association Name="Test_StableFile" Member="Test" ThisKey="TestId" OtherKey="TestId" Type="Test" IsForeignKey="true" />
+    </Type>
+  </Table>
+</Database>

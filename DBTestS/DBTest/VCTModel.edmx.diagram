@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+ <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <edmx:Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+    <!-- Diagram content (shape and connector positions) -->
+    <edmx:Diagrams>
+      <Diagram DiagramId="e242a9ceae4c45a0b98fb0f6ff77cc07" Name="Diagram1">
+        <EntityTypeShape EntityType="VCTModel.Browser" Width="1.5" PointX="2" PointY="3.625" IsExpanded="true" />
+        <EntityTypeShape EntityType="VCTModel.Environment" Width="1.5" PointX="5.5" PointY="3.5" IsExpanded="true" />
+        <EntityTypeShape EntityType="VCTModel.Project" Width="1.5" PointX="2.375" PointY="10.125" IsExpanded="true" />
+        <EntityTypeShape EntityType="VCTModel.Resolution" Width="1.5" PointX="2" PointY="1.5" IsExpanded="true" />
+        <EntityTypeShape EntityType="VCTModel.RunningO" Width="1.5" PointX="2" PointY="5.25" IsExpanded="true" />
+        <EntityTypeShape EntityType="VCTModel.RunningSuite" Width="1.5" PointX="4.875" PointY="7" IsExpanded="true" />
+        <EntityTypeShape EntityType="VCTModel.RunningTest" Width="1.5" PointX="6.625" PointY="7" IsExpanded="true" />
+        <EntityTypeShape EntityType="VCTModel.StableFile" Width="1.5" PointX="10.625" PointY="6.875" IsExpanded="true" />
+        <EntityTypeShape EntityType="VCTModel.Suite" Width="1.5" PointX="4.75" PointY="10.125" IsExpanded="true" />
+        <EntityTypeShape EntityType="VCTModel.Test" Width="1.5" PointX="6.625" PointY="10" IsExpanded="true" />
+        <EntityTypeShape EntityType="VCTModel.TestResult" Width="1.5" PointX="8.5" PointY="6.875" IsExpanded="true" />
+        <AssociationConnector Association="VCTModel.FK_Environment_1_0" ManuallyRouted="false" />
+        <AssociationConnector Association="VCTModel.FK_Environment_0_0" ManuallyRouted="false" />
+        <AssociationConnector Association="VCTModel.FK_RunningSuite_0_0" ManuallyRouted="false" />
+        <AssociationConnector Association="VCTModel.FK_StableFile_0_0" ManuallyRouted="false" />
+        <AssociationConnector Association="VCTModel.FK_Suite_0_0" ManuallyRouted="false" />
+        <AssociationConnector Association="VCTModel.FK_RunningSuite_1_0" ManuallyRouted="false" />
+        <AssociationConnector Association="VCTModel.FK_RunningTest_1_0" ManuallyRouted="false" />
+        <AssociationConnector Association="VCTModel.FK_RunningTest_0_0" ManuallyRouted="false" />
+        <AssociationConnector Association="VCTModel.FK_TestResult_0_0" ManuallyRouted="false" />
+        <AssociationConnector Association="VCTModel.FK_StableFile_1_0" ManuallyRouted="false" />
+        <AssociationConnector Association="VCTModel.FK_TestResult_1_0" ManuallyRouted="false" />
+        <AssociationConnector Association="VCTModel.FK_Test_0_0" ManuallyRouted="false" />
+        <AssociationConnector Association="VCTModel.FK_Environment_0_01" />
+      </Diagram>
+    </edmx:Diagrams>
+  </edmx:Designer>
+</edmx:Edmx>
