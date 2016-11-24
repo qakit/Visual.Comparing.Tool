@@ -12,6 +12,7 @@ using Newtonsoft.Json;
 using VCT.Sdk;
 using VCT.Sdk.Extensions;
 using VCT.Server.Entities;
+using VCT.Server.EqualityComparers;
 using VCT.Server.Helpers;
 
 namespace VCT.Server
@@ -99,7 +100,7 @@ namespace VCT.Server
 		{
 			using (var storage = new StorageContext())
 			{
-//				var project = storage.Projects.FirstOrDefault(p => p.Name == projectId);
+				//				var project = storage.Projects.FirstOrDefault(p => p.Name == projectId);
 				var test = storage.Tests.FirstOrDefault(t => t.Name == testId);
 				if (test == null) return new HttpResponseMessage(HttpStatusCode.NoContent);
 				var stableFile = storage.StableTestFiles.FirstOrDefault(sf => sf.TestId == test.Id && sf.Name == fileName);
@@ -110,11 +111,11 @@ namespace VCT.Server
 				var hash = Utils.ComputeFileHash(fileInfo);
 
 				var content = new StringContent(hash);
-				return new HttpResponseMessage {Content = content};
+				return new HttpResponseMessage { Content = content };
 			}
-//			var request = Request.Content;
-//			var deserialized = JsonConvert.DeserializeObject<TestInfo>(request.ReadAsStringAsync().Result);
-//			return WebHelpers.SendHashToClient(Storage.Project(projectId).StableFiles.GetDirectories(testId).FirstOrDefault(), fileName);
+			//			var request = Request.Content;
+			//			var deserialized = JsonConvert.DeserializeObject<TestInfo>(request.ReadAsStringAsync().Result);
+			//			return WebHelpers.SendHashToClient(Storage.Project(projectId).StableFiles.GetDirectories(testId).FirstOrDefault(), fileName);
 		}
 
 		/// <summary>
@@ -188,7 +189,7 @@ namespace VCT.Server
 				var test = context.Tests.FirstOrDefault(t => t.Name == testId);
 				if (test == null)
 				{
-					test = context.Tests.Add(new Test {Name = testId});
+					test = context.Tests.Add(new Test { Name = testId });
 					context.SaveChanges();
 				}
 				var suite = context.Suites.FirstOrDefault(s => s.Name == suiteId);
@@ -201,7 +202,7 @@ namespace VCT.Server
 					{
 						//jut make record that test failed no diff/no testing
 						var relativePath = "..\\" + MakeRelativePath(Storage.StorageDirectory.FullName, imageFile.FullName) + "?date=" +
-						                   DateTime.Now.ToString();
+						                   DateTime.Now;
 						var artifact = new ArtifactFile
 						{
 							ArtifactFileTypeId = testingArtifactFileType.Id,
@@ -209,13 +210,13 @@ namespace VCT.Server
 							Name = imageFile.Name,
 							RelativePath = relativePath
 						};
-						if (context.ArtifactFiles.FirstOrDefault(af =>
-							af.FullPath == artifact.FullPath &&
-							af.Name == artifact.Name &&
-							af.RelativePath == artifact.RelativePath) == null)
+
+						//as enumerable/to list can cause performance problems here!!!
+						if (!context.ArtifactFiles.AsEnumerable().Contains(artifact, new ArtifactFileComparer()))
 						{
 							context.ArtifactFiles.Add(artifact);
 							context.SaveChanges();
+
 							var testRunStatusInfo = new TestRunStatus
 							{
 								Artifacts = new List<ArtifactFile> {artifact},
@@ -225,17 +226,44 @@ namespace VCT.Server
 								TestId = test.Id
 							};
 
-							context.TestRunStatuses.Add(testRunStatusInfo);
-							context.SaveChanges();
+							var trStatus = context.TestRunStatuses.FirstOrDefault(
+								t => t.SuiteId == testRunStatusInfo.SuiteId && t.TestId == testRunStatusInfo.TestId);
+							if (trStatus == null)
+							{
+								context.TestRunStatuses.Add(testRunStatusInfo);
+								context.SaveChanges();
+							}
+							else
+							{
+								//if artifacts not equal add new artifact
+								//otherwise ignore
+								if (!trStatus.Artifacts.AsEnumerable().Contains(artifact, new ArtifactFileComparer()))
+								{
+									trStatus.Artifacts.Add(artifact);
+									context.SaveChanges();
+								}
+							}
 						}
 					}
-					//compare
-					//put diff and put testing somewhere update db
+					else
+					{
+						//compare
+						//put diff and put testing somewhere update db
+						var diffDirectory = Storage.Project(projectId).Suite(suiteId).DiffTestDirectory(testId);
+						var diffFile = new FileInfo(Path.Combine(
+							diffDirectory.FullName,
+							imageFile.Name));
+
+						ImageFileComparer.ComparingFilesAreEqual(new FileInfo(stableFile.FullPath), imageFile, diffFile);
+
+
+					}
+					
 				}
 			}
 
 			return Ok(new { Message = string.Format("All files have been uploaded successfully to {0} directory", outputDirectory.FullName) });
-//			return GetFilesFromClient(Storage.Project(projectId).Suite(suiteId).TestingTestDirectory(testId));
+			//			return GetFilesFromClient(Storage.Project(projectId).Suite(suiteId).TestingTestDirectory(testId));
 		}
 
 		/// <summary>
@@ -265,14 +293,14 @@ namespace VCT.Server
 				var project = context.Projects.FirstOrDefault(p => p.Name == projId);
 				if (project == null)
 				{
-					project = context.Projects.Add(new Entities.Project {Name = projId});
+					project = context.Projects.Add(new Entities.Project { Name = projId });
 					context.SaveChanges();
 				}
 
 				var suite = context.Suites.FirstOrDefault(s => s.Name == inceptionTime);
 				if (suite == null)
 				{
-					suite = context.Suites.Add(new Entities.Suite {Name = inceptionTime, StartTime = dateTime, ProjectId = project.Id});
+					suite = context.Suites.Add(new Entities.Suite { Name = inceptionTime, StartTime = dateTime, ProjectId = project.Id });
 					context.SaveChanges();
 				}
 				return suite.Name;
@@ -315,7 +343,7 @@ namespace VCT.Server
 				return new HttpResponseMessage { StatusCode = HttpStatusCode.InternalServerError, Content = new StringContent(string.Format("Backup for stable files falied: {0}", e.Message)) };
 			}
 
-			return new HttpResponseMessage {StatusCode = HttpStatusCode.OK, Content = new StringContent("Backup for stable files completed successfully")};
+			return new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = new StringContent("Backup for stable files completed successfully") };
 		}
 
 		/// <summary>
@@ -361,24 +389,24 @@ namespace VCT.Server
 				foreach (Entities.Project project in context.Projects)
 				{
 					var suitesCount = (from suite in context.Suites
-						where suite.ProjectId == project.Id
-						select suite).Count();
-					projects.Add(new Project {Id = (int) project.Id, Name = project.Name, SuitesCount = suitesCount});
+									   where suite.ProjectId == project.Id
+									   select suite).Count();
+					projects.Add(new Project { Id = (int)project.Id, Name = project.Name, SuitesCount = suitesCount });
 				}
 			}
 			return projects;
 
 
-//			var projectDirectories = Storage.Projects;
-//			//TODO remove id after all changes
-//			int id = 1;
-//			foreach (Storage.StorageProject projectDirectory in projectDirectories)
-//			{
-//				var suitesCount = projectDirectory.Suites.Count;
-//				projects.Add(new Project { Id = id, Name = projectDirectory.Directory.Name, SuitesCount = suitesCount });
-//				id++;
-//			}
-//			return projects;
+			//			var projectDirectories = Storage.Projects;
+			//			//TODO remove id after all changes
+			//			int id = 1;
+			//			foreach (Storage.StorageProject projectDirectory in projectDirectories)
+			//			{
+			//				var suitesCount = projectDirectory.Suites.Count;
+			//				projects.Add(new Project { Id = id, Name = projectDirectory.Directory.Name, SuitesCount = suitesCount });
+			//				id++;
+			//			}
+			//			return projects;
 		}
 
 		private List<Suite> GetSuitesInformation(string projectId)
@@ -539,6 +567,6 @@ namespace VCT.Server
 						  select dir).ToArray();
 
 			return passes;
-		}	
+		}
 	}
 }

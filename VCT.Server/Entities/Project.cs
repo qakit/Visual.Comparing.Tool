@@ -24,6 +24,7 @@ namespace VCT.Server.Entities
 	public class Test
 	{
 		public Int64 Id { get; set; }
+		//primary key
 		public string Name { get; set; }
 	}
 
@@ -35,6 +36,7 @@ namespace VCT.Server.Entities
 		public string RelativePath { get; set; }
 
 		public Int64 TestId { get; set; }
+		//test name foreign key
 	}
 
 	#region environment tables
