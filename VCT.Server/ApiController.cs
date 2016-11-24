@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -100,22 +102,20 @@ namespace VCT.Server
 		{
 			using (var storage = new StorageContext())
 			{
-				//				var project = storage.Projects.FirstOrDefault(p => p.Name == projectId);
 				var test = storage.Tests.FirstOrDefault(t => t.Name == testId);
 				if (test == null) return new HttpResponseMessage(HttpStatusCode.NoContent);
-				var stableFile = storage.StableTestFiles.FirstOrDefault(sf => sf.TestId == test.Id && sf.Name == fileName);
+
+				var stableFile =
+					storage.StableFiles.FirstOrDefault(
+						sf => sf.TestName == testId && sf.ProjectName == projectId && sf.FileName == fileName);
+
 				if (stableFile == null) return new HttpResponseMessage(HttpStatusCode.NoContent);
 
-				var fileInfo = new FileInfo(stableFile.FullPath);
-
-				var hash = Utils.ComputeFileHash(fileInfo);
+				var hash = Utils.HashFromBase64(stableFile.Value);
 
 				var content = new StringContent(hash);
 				return new HttpResponseMessage { Content = content };
 			}
-			//			var request = Request.Content;
-			//			var deserialized = JsonConvert.DeserializeObject<TestInfo>(request.ReadAsStringAsync().Result);
-			//			return WebHelpers.SendHashToClient(Storage.Project(projectId).StableFiles.GetDirectories(testId).FirstOrDefault(), fileName);
 		}
 
 		/// <summary>
@@ -136,18 +136,72 @@ namespace VCT.Server
 		[Route("{projectId}/{suiteId}/{testId}/accept")]
 		public HttpResponseMessage AcceptStable(string projectId, string suiteId, string testId)
 		{
-			var suiteDirectory = Storage.Project(projectId).Suite(suiteId);
-			//clear diff files (as they are not necessary any more)
-			suiteDirectory.DiffTestDirectory(testId).ClearContent();
+//			//file server changes
+//			var suiteDirectory = Storage.Project(projectId).Suite(suiteId);
+//			//clear diff files (as they are not necessary any more)
+//			suiteDirectory.DiffTestDirectory(testId).ClearContent();
+//
+//			//copy content of the testing files for sepcified test to stable dirrectory
+//			var testingDirectory = suiteDirectory.TestingTestDirectory(testId);
+//			var stableFilesDirectory = suiteDirectory.StableTestDirectory(testId);
+//
+//			//update stable files in current test run
+//			testingDirectory.CopyTo(stableFilesDirectory);
+//			//copy and replace stable files in global storage for 'Stable Files'
+//			testingDirectory.CopyTo(Storage.Project(projectId).StableTestDirectory(testId));
+//
+			using (var ctx = new StorageContext())
+			{
+				var suite = ctx.Suites.FirstOrDefault(s => s.Name == suiteId);
+				var test = ctx.Tests.FirstOrDefault(t => t.Name == testId && t.SuiteId == suite.Id);
+				var stableFiles = ctx.StableFiles.Where(sf => sf.TestName == test.Name && sf.ProjectName == projectId);
 
-			//copy content of the testing files for sepcified test to stable dirrectory
-			var testingDirectory = suiteDirectory.TestingTestDirectory(testId);
-			var stableFilesDirectory = suiteDirectory.StableTestDirectory(testId);
+				//clear all diff files
+				test.DiffFiles.Clear();
+				//save changes
+				ctx.SaveChanges();
 
-			//update stable files in current test run
-			testingDirectory.CopyTo(stableFilesDirectory);
-			//copy and replace stable files in global storage for 'Stable Files'
-			testingDirectory.CopyTo(Storage.Project(projectId).StableTestDirectory(testId));
+				foreach (ArtifactFile artifactFile in test.TestingFiles)
+				{
+					var stableFile =
+						ctx.StableFiles.FirstOrDefault(
+							sf => sf.FileName == artifactFile.FileName && sf.TestName == test.Name && sf.ProjectName == projectId);
+					if (stableFile == null)
+					{
+						ctx.StableFiles.Add(new StableFile
+						{
+							FileName = artifactFile.FileName,
+							ProjectName = projectId,
+							TestName = test.Name,
+							Value = artifactFile.Value
+						});
+						ctx.SaveChanges();
+					}
+					else
+					{
+						stableFile.Value = artifactFile.Value;
+						ctx.SaveChanges();
+					}
+				}
+
+//				//now add stable files for current test and project
+//
+//				foreach (FileInfo imageFile in images)
+//				{
+//					ctx.StableFiles.Add(new StableFile
+//					{
+//						FullPath = imageFile.FullName,
+//						Name = imageFile.Name,
+//						ProjectName = projectId,
+//						//TODO move it to separate method
+//						RelativePath = "..\\" + MakeRelativePath(Storage.StorageDirectory.FullName, imageFile.FullName) + "?date=" +
+//						               DateTime.Now,
+//						TestName = test.Name
+//					});
+//					ctx.SaveChanges();
+//				}
+			}
+			
 
 			return new HttpResponseMessage { Content = new StringContent("All files have been moved from testing to stable directory. And were updated in global storage"), StatusCode = HttpStatusCode.OK };
 		}
@@ -183,87 +237,103 @@ namespace VCT.Server
 
 			//2. Compare each file to stable
 			var files = outputDirectory.GetImageFiles();
-			using (var context = new StorageContext())
+			using (var ctx = new StorageContext())
 			{
-				var project = context.Projects.FirstOrDefault(p => p.Name == projectId);
-				var test = context.Tests.FirstOrDefault(t => t.Name == testId);
+				//you could have old test here for previous suite
+				//this must be handled in future
+				var suite = ctx.Suites.FirstOrDefault(s => s.Name == suiteId);
+				//find current test
+				var test = ctx.Tests.FirstOrDefault(t => t.Name == testId && t.SuiteId == suite.Id);
+				//if not current test create
 				if (test == null)
 				{
-					test = context.Tests.Add(new Test { Name = testId });
-					context.SaveChanges();
+					ctx.Tests.Add(new Test
+					{
+						Name = testId , 
+						SuiteId = suite.Id,
+						Passed = false
+					});
+					ctx.SaveChanges();
+					test = ctx.Tests.FirstOrDefault(t => t.Name == testId && t.SuiteId == suite.Id);
 				}
-				var suite = context.Suites.FirstOrDefault(s => s.Name == suiteId);
-				var testingArtifactFileType = context.ArtifactFileTypes.FirstOrDefault(aft => aft.Type == "Testing");
 
-				foreach (FileInfo imageFile in files)
+				foreach (FileInfo testingFile in files)
 				{
-					var stableFile = context.StableTestFiles.FirstOrDefault(sf => sf.TestId == test.Id && sf.Name == imageFile.Name);
+					//get stable file from 
+					var stableFile = ctx.StableFiles.FirstOrDefault(sf => sf.TestName == test.Name && sf.FileName == testingFile.Name && sf.ProjectName == projectId);
+					//if no stable file when just put testing file to current test
 					if (stableFile == null)
 					{
-						//jut make record that test failed no diff/no testing
-						var relativePath = "..\\" + MakeRelativePath(Storage.StorageDirectory.FullName, imageFile.FullName) + "?date=" +
-						                   DateTime.Now;
-						var artifact = new ArtifactFile
+						var testingFileArtifact = new ArtifactFile
 						{
-							ArtifactFileTypeId = testingArtifactFileType.Id,
-							FullPath = imageFile.FullName,
-							Name = imageFile.Name,
-							RelativePath = relativePath
+							FileName = testingFile.Name,
+							Value = Utils.ImageToBase64(testingFile),
+							Test = test,
+							Type = ArtifactType.Testing
 						};
 
-						//as enumerable/to list can cause performance problems here!!!
-						if (!context.ArtifactFiles.AsEnumerable().Contains(artifact, new ArtifactFileComparer()))
+						//if artifact not exist insert as testing file for current test
+						if (!test.TestingFiles.ToList().Contains(testingFileArtifact, new ArtifactFileComparer()))
 						{
-							context.ArtifactFiles.Add(artifact);
-							context.SaveChanges();
+							//insert
+							ctx.ArtifactFiles.Add(testingFileArtifact);
+							test.TestingFiles.Add(testingFileArtifact);
 
-							var testRunStatusInfo = new TestRunStatus
-							{
-								Artifacts = new List<ArtifactFile> {artifact},
-								EnvironmentId = 1,
-								Passed = false,
-								SuiteId = suite.Id,
-								TestId = test.Id
-							};
-
-							var trStatus = context.TestRunStatuses.FirstOrDefault(
-								t => t.SuiteId == testRunStatusInfo.SuiteId && t.TestId == testRunStatusInfo.TestId);
-							if (trStatus == null)
-							{
-								context.TestRunStatuses.Add(testRunStatusInfo);
-								context.SaveChanges();
-							}
-							else
-							{
-								//if artifacts not equal add new artifact
-								//otherwise ignore
-								if (!trStatus.Artifacts.AsEnumerable().Contains(artifact, new ArtifactFileComparer()))
-								{
-									trStatus.Artifacts.Add(artifact);
-									context.SaveChanges();
-								}
-							}
+							//SAVE
+							ctx.SaveChanges();
 						}
+						//ignore if artifact exists
 					}
 					else
 					{
-						//compare
-						//put diff and put testing somewhere update db
-						var diffDirectory = Storage.Project(projectId).Suite(suiteId).DiffTestDirectory(testId);
+						//there is a stable file
+
+						//first make sure that there is no any artifact already
+						//first check testing
+						var testingFileArtifact = new ArtifactFile
+						{
+							FileName = testingFile.Name,
+							Value = Utils.ImageToBase64(testingFile),
+							Test = test,
+							Type = ArtifactType.Testing
+						};
+
+						//if artifact not exist insert as testing file for current test
+						if (!test.TestingFiles.AsEnumerable().Contains(testingFileArtifact, new ArtifactFileComparer()))
+						{
+							//insert
+							ctx.ArtifactFiles.Add(testingFileArtifact);
+							test.TestingFiles.Add(testingFileArtifact);
+							//SAVE
+							ctx.SaveChanges();
+						}
+						//now check diff file
+						var diffDirectory = new DirectoryInfo(@"C:\projects\Visual.Comparing.Tool\Output");
 						var diffFile = new FileInfo(Path.Combine(
 							diffDirectory.FullName,
-							imageFile.Name));
+							testingFile.Name));
 
-						ImageFileComparer.ComparingFilesAreEqual(new FileInfo(stableFile.FullPath), imageFile, diffFile);
+						//first compare
+						var diff = ImageFileComparer.GenerateDiffFile(Utils.Base64ToImage(stableFile.Value), Image.FromFile(testingFile.FullName), diffFile);
 
+						var diffFileArtifact = new ArtifactFile
+						{
+							FileName = diffFile.Name,
+							Value = Utils.ImageToBase64(diff, ImageFormat.Png),
+							Test = test,
+							Type = ArtifactType.Diff
+						};
+
+						//insert
+						ctx.ArtifactFiles.Add(diffFileArtifact);
+						test.DiffFiles.Add(diffFileArtifact);
+						//SAVE
+						ctx.SaveChanges();
 
 					}
-					
 				}
 			}
-
 			return Ok(new { Message = string.Format("All files have been uploaded successfully to {0} directory", outputDirectory.FullName) });
-			//			return GetFilesFromClient(Storage.Project(projectId).Suite(suiteId).TestingTestDirectory(testId));
 		}
 
 		/// <summary>
@@ -411,89 +481,82 @@ namespace VCT.Server
 
 		private List<Suite> GetSuitesInformation(string projectId)
 		{
-			var suites = new List<Suite>();
-			var suiteDirectories =
-				Storage.Project(projectId).Suites.OrderByDescending(d => d.DateStarted).ToList();
-
-			int suiteId = suiteDirectories.Count;
-
-			foreach (Storage.StorageProject.ProjectSuite suiteDirectory in suiteDirectories)
+			var suitesInfo = new List<Suite>();
+			using (var ctx = new StorageContext())
 			{
-				var failed = GetFailedTests(suiteDirectory);
-				var passed = GetPassedTests(suiteDirectory);
+				var project = ctx.Projects.FirstOrDefault(p => p.Name == projectId);
+				var suites = ctx.Suites.Where(s => s.ProjectId == project.Id).OrderByDescending(s => s.StartTime).ToList();
 
-				suites.Add(new Suite
+				int suiteId = suites.Count;
+
+				foreach (Entities.Suite suite in suites)
 				{
-					DateCompleted = suiteDirectory.DateCompleted,
-					DateStarted = suiteDirectory.DateStarted.ToString(),
-					Failed = failed.Length,
-					Passed = passed.Length,
-					Id = suiteId,
-					Name = suiteDirectory.Directory.Name
-				});
+					var tests = ctx.Tests.Where(t => t.SuiteId == suite.Id).ToList();
+					var failed = tests.Count(t => !t.Passed);
+					var passed = tests.Count(t => t.Passed);
 
-				suiteId--;
+					suitesInfo.Add(new Suite
+					{
+						DateCompleted = suite.EndTime.ToString(),
+						DateStarted = suite.StartTime.ToString(),
+						Failed = failed,
+						Passed = passed,
+						Id = suiteId,
+						Name = suite.Name
+					});
+					suiteId--;
+				}
 			}
-
-			return suites;
+			return suitesInfo;
 		}
 
 		private List<FailedTest> GetFailedTestsInformation(string projectId, string suiteId)
 		{
 			var tests = new List<FailedTest>();
-			var suiteDirectory = Storage.Project(projectId).Suite(suiteId);
-
-			if (suiteDirectory == null) return tests;
-
-			foreach (DirectoryInfo diffDirectory in suiteDirectory.DiffFilesDirectory.GetDirectories("*", SearchOption.TopDirectoryOnly))
+			using (var ctx = new StorageContext())
 			{
-				//Get stable directory path
-				var stableFolderPath = suiteDirectory.StableFilesDirectory.GetDirectories(diffDirectory.Name,
-					SearchOption.TopDirectoryOnly).FirstOrDefault();
+				var project = ctx.Projects.FirstOrDefault(p => p.Name == projectId);
+				var suite = ctx.Suites.FirstOrDefault(s => s.ProjectId == project.Id && s.Name == suiteId);
+				var failedTests = ctx.Tests.Where(t => t.SuiteId == suite.Id && !t.Passed).ToList();
 
-				//Get testing directory path
-				var testingFolderPath =
-					suiteDirectory.TestingFilesDirectory.GetDirectories(diffDirectory.Name, SearchOption.TopDirectoryOnly)
-						.FirstOrDefault();
-
-				//Get all images from all directories
-				var stableImages = Utils.GetResultImages(stableFolderPath);
-				var testingImages = Utils.GetResultImages(testingFolderPath);
-				var diffImages = Utils.GetResultImages(diffDirectory);
-
-				//find longest list as all directories might have different number of images so we need to find max one
-				//to make sure that we no iterate throught smallest one
-				//how to avoid this? merge three lists into one excluding all repeated images?
-
-				IEnumerable<FileInfo> longestList = Utils.FindLongest(stableImages, testingImages, diffImages);
-
-				var artifactsCollection = new List<Tuple>();
-
-				foreach (FileInfo imageFile in longestList)
+				
+				foreach (Test failedTest in failedTests)
 				{
-					var stableFile = Utils.GetFileByName(stableImages, imageFile.Name);
-					var testingFile = Utils.GetFileByName(testingImages, imageFile.Name);
-					var diffFile = Utils.GetFileByName(diffImages, imageFile.Name);
+					var artifactsCollection = new List<Tuple>();
+					var stableFiles = ctx.StableFiles.Where(sf => sf.TestName == failedTest.Name && sf.ProjectName == project.Name).ToList();
 
-					var stableData = GetAtrifactDescription(stableFile);
-					var testingData = GetAtrifactDescription(testingFile);
-					var diffData = GetAtrifactDescription(diffFile);
+					var listOfArtifacts =
+						failedTest.DiffFiles.Select(df => df.FileName)
+							.Union(failedTest.TestingFiles.Select(tf => tf.FileName)).Union(stableFiles.Select(sf => sf.FileName));
 
-					artifactsCollection.Add(new Tuple
+					foreach (string singleArtifact in listOfArtifacts)
 					{
-						StableFile = stableData,
-						TestingFile = testingData,
-						DiffFile = diffData
+						var stableFile = stableFiles.FirstOrDefault(sf => sf.FileName == singleArtifact);
+						var testingFile = failedTest.TestingFiles.FirstOrDefault(tf => tf.FileName == singleArtifact);
+						var diffFile = failedTest.DiffFiles.FirstOrDefault(df => df.FileName == singleArtifact);
+
+						var stableFileDescription = stableFile == null
+							? EmptyArtifact()
+							: new File
+							{
+								Name = stableFile.FileName,
+								Value = stableFile.Value,
+							};
+
+						artifactsCollection.Add(new Tuple
+						{
+							DiffFile = GetAtrifactDescription(diffFile),
+							StableFile = stableFileDescription,
+							TestingFile = GetAtrifactDescription(testingFile),
+						});
+					}
+					tests.Add(new FailedTest
+					{
+						TestName = failedTest.Name,
+						Artifacts = artifactsCollection
 					});
 				}
-
-				tests.Add(new FailedTest
-				{
-					TestName = diffDirectory.Name,
-					Artifacts = artifactsCollection
-				});
 			}
-
 			return tests;
 		}
 
@@ -502,17 +565,13 @@ namespace VCT.Server
 		/// </summary>
 		/// <param name="artifactFile">Artifact as <see cref="FileInfo"/></param>
 		/// <returns><see cref="File"/> with Name (empty if null), Path (empty if null)</returns>
-		private File GetAtrifactDescription(FileInfo artifactFile)
+		private File GetAtrifactDescription(ArtifactFile artifact)
 		{
-			if (artifactFile == null)
-				return EmptyArtifact();
-
-			var random = DateTime.Now.ToString();
+			if (artifact == null) return EmptyArtifact();
 			return new File
 			{
-				Name = artifactFile.Name,
-				Path = artifactFile.FullName,
-				RelativePath = "..\\" + MakeRelativePath(Storage.StorageDirectory.FullName, artifactFile.FullName) + "?date=" + random
+				Name = artifact.FileName,
+				Value = artifact.Value
 			};
 		}
 
@@ -542,8 +601,7 @@ namespace VCT.Server
 			return new File
 			{
 				Name = "",
-				Path = "",
-				RelativePath = ""
+				Value = ""
 			};
 		}
 

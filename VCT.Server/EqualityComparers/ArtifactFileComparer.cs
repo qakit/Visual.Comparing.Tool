@@ -10,7 +10,7 @@ namespace VCT.Server.EqualityComparers
 			if (x == null && y == null) return true;
 			if (x == null || y == null) return false;
 
-			return x.FullPath == y.FullPath && x.Name == y.Name;
+			return x.FileName == y.FileName && x.Value == y.Value && x.Type == y.Type;
 		}
 
 		public int GetHashCode(ArtifactFile obj)

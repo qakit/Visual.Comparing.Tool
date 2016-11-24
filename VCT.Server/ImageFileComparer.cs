@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Threading;
 using ImageMagick;
@@ -50,6 +52,46 @@ namespace VCT.Server
 						}
 
 						return true;
+					}
+				}
+			}
+		}
+
+		internal static Image GenerateDiffFile(Image expectedImage, Image actualImage, FileInfo tmpOutputDiff)
+		{
+			var expectedFile = new FileInfo(Path.Combine(tmpOutputDiff.Directory.FullName, "expected.png"));
+			if (expectedFile.Exists) expectedFile.Delete();
+			var actualFile = new FileInfo(Path.Combine(tmpOutputDiff.Directory.FullName, "actual.png"));
+			if (actualFile.Exists) actualFile.Delete();
+
+			if (tmpOutputDiff.Exists) tmpOutputDiff.Delete();
+
+			expectedImage.Save(expectedFile.FullName, ImageFormat.Png);
+			actualImage.Save(actualFile.FullName, ImageFormat.Png);
+
+			using (var stableVersionOutputImageFile = new MagickImage(expectedFile))
+			{
+				using (var testingVersionOutputImageFile = new MagickImage(actualFile))
+				{
+					using (var outputErrorImage = new MagickImage())
+					{
+						double errors;
+						try
+						{
+							errors = testingVersionOutputImageFile.Compare(stableVersionOutputImageFile, ErrorMetric.Absolute, outputErrorImage);
+						}
+						catch (Exception e)
+						{
+							Console.WriteLine("Error occured during comparing two images. Exception: {0}", e.Message);
+							return null;
+						}
+
+						if (errors > TrustLevel)
+						{
+							outputErrorImage.Write(tmpOutputDiff);
+							return Image.FromFile(tmpOutputDiff.FullName);
+						}
+						return null;
 					}
 				}
 			}

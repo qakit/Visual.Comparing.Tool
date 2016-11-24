@@ -3,7 +3,7 @@ import React from 'react'
 import NavigationResultBar from './NavigationResultBar'
 import TestResultContainer from './TestResultContainer'
 
-var fakePreviewData = [{"TestName":"","Artifacts":[{"StableFile":{"Name":"","Path":"","RelativePath":""},"TestingFile":{"Name":"","Path":"","RelativePath":""},"DiffFile":{"Name":"","Path":"","RelativePath":""}}]}]
+var fakePreviewData = [{"TestName":"","Artifacts":[{"StableFile":{"Name":"","Value":""},"TestingFile":{"Name":"","Value":""},"DiffFile":{"Name":"","Value":""}}]}]
 
 export default React.createClass({
     getCurrentImageName: function(artifact) {
@@ -235,19 +235,19 @@ export default React.createClass({
 
         const imageName = this.state.imageName;
 
-        var hasTesting = testingImage.RelativePath !== "";
-        var hasStable = stableImage.RelativePath !== "";
+        var hasTesting = testingImage.Value !== "";
+        var hasStable = stableImage.Value !== "";
 
         var testingImagePath;
         if (hasTesting) {
-            testingImagePath = testingImage.RelativePath;
+            testingImagePath = testingImage.Value;
         } else {
             testingImagePath = this.state.showDiff ? "..\\images\\nodiff.png" : "..\\images\\notesting.png";
         }
         
         var stableImagePath;
         if (hasStable) {
-            stableImagePath = stableImage.RelativePath;
+            stableImagePath = stableImage.Value;
         } else {
             stableImagePath = "..\\images\\nostable.png";
         }

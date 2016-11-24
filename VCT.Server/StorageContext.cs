@@ -22,9 +22,7 @@ namespace VCT.Server
 		public virtual DbSet<Resolution> Resolutions { get; set; }
 		public virtual DbSet<Browser> Browsers { get; set; }
 		public virtual DbSet<Entities.Environment> Environments { get; set; }
-		public virtual DbSet<TestRunStatus> TestRunStatuses { get; set; }
 		public virtual DbSet<ArtifactFile> ArtifactFiles { get; set; }
-		public virtual DbSet<ArtifactFileType> ArtifactFileTypes { get; set; }
-		public virtual DbSet<StableTestFile> StableTestFiles { get; set; }
+		public virtual DbSet<StableFile> StableFiles { get; set; }
 	}
 }

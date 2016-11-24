@@ -36,16 +36,17 @@ namespace VCT.Client.Modules
 			//TODO send file to server here just for saving as is without comparing
 			if (string.IsNullOrEmpty(stableHash))
 			{
-				Shell.Do.SendTestingFile(testingImageFile, testName);
+				Shell.Do.SendTestingFile(testingImageFile, testName, _testInfo);
 				return false;
 			}
 
 			//if hash not empty we must send testing file to server and server must compare it to stable
 			//put stable / testing / diff to correct folders
-			var testingHash = Utils.ComputeFileHash(testingImageFile);
+			var imageBase64 = Utils.ImageToBase64(testingImageFile);
+			var testingHash = Utils.HashFromBase64(imageBase64);
 			if (!string.Equals(stableHash, testingHash))
 			{
-				Shell.Do.SendTestingFile(testingImageFile, testName);
+				Shell.Do.SendTestingFile(testingImageFile, testName, _testInfo);
 				return false;
 			}
 

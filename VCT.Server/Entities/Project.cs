@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 
 namespace VCT.Server.Entities
@@ -19,6 +18,7 @@ namespace VCT.Server.Entities
 		public string Name { get; set; }
 
 		public Int64 ProjectId { get; set; }
+		public ICollection<Test> Tests { get; set; }
 	}
 
 	public class Test
@@ -26,19 +26,52 @@ namespace VCT.Server.Entities
 		public Int64 Id { get; set; }
 		//primary key
 		public string Name { get; set; }
+
+		public virtual ICollection<ArtifactFile> TestingFiles { get; set; }
+		public virtual ICollection<ArtifactFile> DiffFiles { get; set; }
+
+		public bool Passed { get; set; }
+
+		public Int64 SuiteId { get; set; }
+
+		public Test()
+		{
+			TestingFiles = new List<ArtifactFile>();
+			DiffFiles = new List<ArtifactFile>();
+		}
 	}
 
-	public class StableTestFile
+	public class StableFile
 	{
 		public Int64 Id { get; set; }
-		public string Name { get; set; }
-		public string FullPath { get; set; }
-		public string RelativePath { get; set; }
 
-		public Int64 TestId { get; set; }
-		//test name foreign key
+		public string FileName { get; set; }
+		public string Value { get; set; }
+
+		public string TestName { get; set; }
+		public string ProjectName { get; set; }
 	}
 
+	public class ArtifactFile
+	{
+		public Int64 Id { get; set; }
+		
+		public string Value { get; set; }
+		public string FileName { get; set; }
+		public ArtifactType Type { get; set; }
+
+		public Int64 TestId { get; set; }
+		public Test Test { get; set; }
+
+	}
+
+	public enum ArtifactType
+	{
+		Stable,
+		Testing,
+		Diff
+	}
+	
 	#region environment tables
 	public class Browser
 	{
@@ -61,31 +94,4 @@ namespace VCT.Server.Entities
 	}
 	#endregion
 	
-	public class TestRunStatus
-	{
-		public Int64 Id { get; set; }
-		public bool Passed { get; set; }
-
-		public Int64 TestId { get; set; }
-		public Int64 SuiteId { get; set; }
-		public Int64 EnvironmentId { get; set; }
-
-		public ICollection<ArtifactFile> Artifacts { get; set; }
-	}
-
-	public class ArtifactFile
-	{
-		public Int64 Id { get; set; }
-		public string Name { get; set; }
-		public string FullPath { get; set; }
-		public string RelativePath { get; set; }
-
-		public Int64 ArtifactFileTypeId { get; set; }
-	}
-
-	public class ArtifactFileType
-	{
-		public Int64 Id { get; set; }
-		public string Type { get; set; }
-	}
 }

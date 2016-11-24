@@ -23,13 +23,13 @@ namespace VCT.Server
 				});
 
 			//File types
-			context.Set<ArtifactFileType>()
-				.AddRange(new List<ArtifactFileType>
-				{
-					new ArtifactFileType {Type = "Stable"},
-					new ArtifactFileType {Type = "Testing"},
-					new ArtifactFileType {Type = "Diff"}
-				});
+//			context.Set<ArtifactFileType>()
+//				.AddRange(new List<ArtifactFileType>
+//				{
+//					new ArtifactFileType {Type = "Stable"},
+//					new ArtifactFileType {Type = "Testing"},
+//					new ArtifactFileType {Type = "Diff"}
+//				});
 		}
 	}
 }

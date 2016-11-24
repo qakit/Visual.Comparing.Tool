@@ -123,9 +123,30 @@ namespace VCT.Client
 		/// </summary>
 		/// <param name="testingFile">File which you want to save to the server</param>
 		/// <param name="testName">Unique test name (will be used to search for files/folders on server)</param>
-		public void SendTestingFile(FileInfo testingFile, string testName)
+		public void SendTestingFile(FileInfo testingFile, string testName, TestInfo testInfo)
 		{
-			Push(testingFile, testName, TestTypes.testing);
+			var restUrl = string.Format("{0}/api/{1}/{2}/{3}/{4}", ServerAddress, ProjectId, SuiteId, testName, TestTypes.testing);
+
+			using (var httpClient = new HttpClient())
+			{
+				var content = new MultipartFormDataContent();
+				HttpResponseMessage result;
+				testingFile.Refresh();
+				if (!testingFile.Exists)
+				{
+					result = httpClient.PostAsync(restUrl, content).Result;
+					Console.WriteLine(result);
+					return;
+				}
+
+				var fs = File.Open(testingFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
+				var fileContent = new StreamContent(fs);
+				content.Add(fileContent, "file", testingFile.Name);
+				content.Add(new StringContent(JsonConvert.SerializeObject(testInfo), Encoding.UTF8, "application/json"));
+
+				result = httpClient.PostAsync(restUrl, content).Result;
+				Console.WriteLine(result);
+			}
 		}
 
 		/// <summary>
