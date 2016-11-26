@@ -16,7 +16,6 @@ using VCT.Sdk.Extensions;
 using VCT.Server.Entities;
 using VCT.Server.EqualityComparers;
 using VCT.Server.Helpers;
-using Environment = VCT.Server.Entities.Environment;
 
 namespace VCT.Server
 {
@@ -41,7 +40,7 @@ namespace VCT.Server
 		/// <summary>
 		/// Gets wide information about all suites in the current project
 		/// </summary>
-		/// <param name="projectId">Project Id</param>
+		/// <param name="projectName">Project Id</param>
 		/// <returns></returns>
 		[HttpGet]
 		[Route("{projectName}/suites")]
@@ -53,8 +52,8 @@ namespace VCT.Server
 		/// <summary>
 		/// Gets information about all failed tests in specified suite run for specific project
 		/// </summary>
-		/// <param name="projectId"></param>
-		/// <param name="suiteId"></param>
+		/// <param name="projectName"></param>
+		/// <param name="suiteName"></param>
 		/// <returns></returns>
 		[HttpGet]
 		[Route("{projectName}/{suiteName}/tests")]
@@ -97,7 +96,7 @@ namespace VCT.Server
 			}
 		}
 
-		private Environment GetEnvironment(string browser, Size windowSize)
+		private Entities.Environment GetEnvironment(string browser, Size windowSize)
 		{
 			using (var ctx = new StorageContext())
 			{
@@ -113,7 +112,7 @@ namespace VCT.Server
 
 				var environment =
 					ctx.Environments.FirstOrDefault(env => env.BrowserId == browserEntity.Id && env.ResolutionId == resolutionEntity.Id) ??
-					ctx.Environments.Add(new Environment {BrowserId = browserEntity.Id, ResolutionId = resolutionEntity.Id});
+					ctx.Environments.Add(new Entities.Environment {BrowserId = browserEntity.Id, ResolutionId = resolutionEntity.Id});
 				ctx.SaveChanges();
 				return environment;
 			}
@@ -140,26 +139,12 @@ namespace VCT.Server
 					TestId = test.Id
 				};
 
-				if (!ctx.RunningTests.Contains(runningTest, new RunningTestComparer()))
+				if (!ctx.RunningTests.ToList().Contains(runningTest, new RunningTestComparer()))
 				{
 					ctx.RunningTests.Add(runningTest);
 					ctx.SaveChanges();
 				}
 			}
-		}
-
-		/// <summary>
-		/// Post stable file for specified test to the current suite run
-		/// </summary>
-		/// <param name="projectId">project id/project name to which test belong</param>
-		/// <param name="suiteId">suite id/suite name to which test belong</param>
-		/// <param name="testId">test id /name of the test/ in the project</param>
-		/// <returns></returns>
-		[HttpPost]
-		[Route("{projectName}/{suiteName}/{testName}/stable")]
-		public Task<IHttpActionResult> PostStable(string projectId, string suiteId, string testId)
-		{
-			return GetFilesFromClient(Storage.Project(projectId).Suite(suiteId).StableTestDirectory(testId));
 		}
 
 		[HttpPost]
@@ -207,8 +192,8 @@ namespace VCT.Server
 		/// Gets the files from the client and put them to the testing folder for the specified suite/run
 		/// </summary>
 		/// <param name="projectName">project id/project name to which test belong</param>
-		/// <param name="suiteId">suite id/suite name to which test belong</param>
-		/// <param name="testId">test id /name of the test/ in the project</param>
+		/// <param name="suiteName">suite id/suite name to which test belong</param>
+		/// <param name="testName">test id /name of the test/ in the project</param>
 		/// <returns></returns>
 		[HttpPost]
 		[Route("{projectName}/{suiteName}/{testName}/testing")]
@@ -225,7 +210,6 @@ namespace VCT.Server
 			var multiPartFormDataStreamProvider = new UploadMultipartFormProvider(outputDirectory.FullName);
 			await Request.Content.ReadAsMultipartAsync(multiPartFormDataStreamProvider);
 
-			IEnumerable<string> headerCollection;
 			var stringContent = Request.Headers.GetValues("TestInfo").FirstOrDefault();
 			var testInfo = JsonConvert.DeserializeObject<TestInfo>(stringContent);
 
@@ -298,6 +282,8 @@ namespace VCT.Server
 					{
 						//now check diff file
 						var diffDirectory = new DirectoryInfo(@"C:\projects\Visual.Comparing.Tool\VCT.Server\Output");
+						if(diffDirectory.Exists) diffDirectory.ClearContent();
+
 						var diffFile = new FileInfo(Path.Combine(
 							diffDirectory.FullName,
 							testingFile.Name));
@@ -308,26 +294,13 @@ namespace VCT.Server
 						//add diff to test result
 						runningTest.TestResults.Where(tr => tr.Name == testingFile.Name).FirstOrDefault().DiffFile =
 							Utils.ImageToBase64(diff, ImageFormat.Png);
+						runningTest.Passed = false;
 						//save changes
 						ctx.SaveChanges();
 					}
 				}
 			}
 			return Ok(new { Message = string.Format("All files have been uploaded successfully to {0} directory", outputDirectory.FullName) });
-		}
-
-		/// <summary>
-		/// Gets the files from the client and put them to the diff folder for the specified suite/run
-		/// </summary>
-		/// <param name="projectId">project id/project name to which test belong</param>
-		/// <param name="suiteId">suite id/suite name to which test belong</param>
-		/// <param name="testId">test id /name of the test/ in the project</param>
-		/// <returns></returns>
-		[HttpPost]
-		[Route("{projectName}/{suiteName}/{testName}/diff")]
-		public Task<IHttpActionResult> PostDiff(string projectId, string suiteId, string testId)
-		{
-			return GetFilesFromClient(Storage.Project(projectId).Suite(suiteId).DiffTestDirectory(testId));
 		}
 
 		[HttpPost]
@@ -406,18 +379,22 @@ namespace VCT.Server
 		/// <summary>
 		/// Removes suite from project
 		/// </summary>
-		/// <param name="projectId"></param>
-		/// <param name="suiteId"></param>
+		/// <param name="projectName"></param>
+		/// <param name="suiteName"></param>
 		/// <returns></returns>
 		[HttpDelete]
 		[Route("{projectName}/{suiteName}/delete")]
-		public HttpResponseMessage DeleteSuite(string projectId, string suiteId)
+		public HttpResponseMessage DeleteSuite(string projectName, string suiteName)
 		{
-			Storage.Project(projectId).Suite(suiteId).Delete();
+//			using (var ctx = new StorageContext())
+//			{
+//				var project = ctx.Projects.FirstOrDefault(p => p.Name == projectName);
+//			}
+			Storage.Project(projectName).Suite(suiteName).Delete();
 			return new HttpResponseMessage
 			{
 				StatusCode = HttpStatusCode.OK,
-				Content = new StringContent(string.Format("Suite {0} has been removed from {1} project.", suiteId, projectId))
+				Content = new StringContent(string.Format("Suite {0} has been removed from {1} project.", suiteName, projectName))
 			};
 		}
 
@@ -503,6 +480,7 @@ namespace VCT.Server
 
 					var listOfArtifacts = failedTest.TestResults.Select(df => df.Name)
 							.Union(stableFiles.Select(sf => sf.Name));
+					var environment = ctx.Environments.FirstOrDefault(e => e.Id == failedTest.EnvironmentId);
 
 					foreach (string singleArtifact in listOfArtifacts)
 					{
@@ -527,11 +505,19 @@ namespace VCT.Server
 							TestingFile = GetAtrifactDescription(singleArtifact, testingFile),
 						});
 					}
+					var browser = ctx.Browsers.FirstOrDefault(b => b.Id == environment.BrowserId);
+					var resolution = ctx.Resolutions.FirstOrDefault(r => r.Id == environment.ResolutionId);
+
 					tests.Add(new FailedTest
 					{
 						TestName = testDescription.Name,
 						Artifacts = artifactsCollection,
-						EnvironmentId = (int) failedTest.EnvironmentId
+						Environment = new Environment
+						{
+							Browser = browser.Name,
+							WindowSize = string.Format("{0} x {1}", resolution.Width, resolution.Height),
+							Id = (int) environment.Id
+						}
 					});
 				}
 			}
@@ -580,28 +566,6 @@ namespace VCT.Server
 				Name = "",
 				Value = ""
 			};
-		}
-
-		private string[] GetFailedTests(Storage.StorageProject.ProjectSuite suite)
-		{
-			return suite.DiffFilesDirectory.GetDirectories().Select(d => d.Name).ToArray();
-		}
-
-		private string[] GetPassedTests(Storage.StorageProject.ProjectSuite suite)
-		{
-			var stableDirectories = suite.StableFilesDirectory.GetDirectories();
-			var testingDirectories = suite.TestingFilesDirectory.GetDirectories();
-			var failedDirectories = suite.DiffFilesDirectory.GetDirectories();
-
-			var distinctList =
-				stableDirectories.Select(d => d.Name)
-					.ToList()
-					.Concat(testingDirectories.Select(d => d.Name).ToList()).Distinct();
-			var passes = (from dir in distinctList
-						  where !failedDirectories.Select(d => d.Name).ToList().Contains(dir)
-						  select dir).ToArray();
-
-			return passes;
 		}
 	}
 }

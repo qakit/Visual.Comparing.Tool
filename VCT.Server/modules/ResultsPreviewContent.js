@@ -3,7 +3,7 @@ import React from 'react'
 import NavigationResultBar from './NavigationResultBar'
 import TestResultContainer from './TestResultContainer'
 
-var fakePreviewData = [{"TestName":"","EnvironmentId" : 0,"Artifacts":[{"StableFile":{"Name":"","Value":""},"TestingFile":{"Name":"","Value":""},"DiffFile":{"Name":"","Value":""}}]}]
+var fakePreviewData = [{"TestName":"","Environment":{"Id":0,"Browser":"","WindowSize":""},"Artifacts":[{"StableFile":{"Name":"","Value":""},"TestingFile":{"Name":"","Value":""},"DiffFile":{"Name":"","Value":""}}]}]
 
 export default React.createClass({
     getCurrentImageName: function(artifact) {
@@ -133,7 +133,7 @@ export default React.createClass({
         }
         if (id === "acceptFail") {
             var testName = this.state.testData[this.state.testIndex].TestName;
-            var environmentId = this.state.testData[this.state.testIndex].EnvironmentId;
+            var environmentId = this.state.testData[this.state.testIndex].Environment.Id;
             var projectName = this.props.params.projectId;
             var suiteName = this.props.params.suiteId;
             if(testName === "") return;
@@ -233,7 +233,7 @@ export default React.createClass({
         const {TestName: testName, Artifacts: artifacts} = this.state.testData[this.state.testIndex];
         const testingImage = this.state.showDiff ? artifacts[this.state.imageIndex].DiffFile : artifacts[this.state.imageIndex].TestingFile;
         const stableImage = artifacts[this.state.imageIndex].StableFile;
-
+        const {Browser: browser, WindowSize: windowSize} = this.state.testData[this.state.testIndex].Environment;
         const imageName = this.state.imageName;
 
         var hasTesting = testingImage.Value !== "";
@@ -274,7 +274,7 @@ export default React.createClass({
                         <div className="navbar navbar-default history" id="bs-example-navbar-collapse-1">
                             <ul className="nav navbar-nav">
                                 <li><a href="#" id="back" onClick={this.handleChildClick}><i id="back" className="fa fa-arrow-left"></i></a></li>
-                                <li><p className="navbar-text">{testName}</p></li>
+                                <li><p className="navbar-text">{`${testName} - ${imageName} [Browser: ${browser}; WindowSize: ${windowSize}]`}</p></li>
                             </ul>
                             <ul id="toggleList" className="nav navbar-nav navbar-right">
                                 <li><a href="#" id="toggleList" onClick={this.handleChildClick}><i id="toggleList" className="fa fa-list"></i></a></li>

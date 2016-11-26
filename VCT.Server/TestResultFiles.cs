@@ -22,8 +22,15 @@ namespace VCT.Server
 	public class FailedTest
 	{
 		public string TestName { get; set; }
-		public int EnvironmentId { get; set; }
+		public Environment Environment { get; set; }
 		public List<Tuple> Artifacts { get; set; } 
+	}
+
+	public class Environment
+	{
+		public int Id { get; set; }
+		public string Browser { get; set; }
+		public string WindowSize { get; set; }
 	}
 
 	public class Tuple

@@ -26,5 +26,6 @@ namespace VCT.Server
 		public virtual DbSet<Resolution> Resolutions { get; set; }
 		public virtual DbSet<Browser> Browsers { get; set; }
 		public virtual DbSet<Entities.Environment> Environments { get; set; }
+		public virtual DbSet<Entities.Mask> Masks { get; set; }
 	}
 }

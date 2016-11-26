@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using VCT.Client.Comparers;
 using VCT.Sdk;
 using VCT.Sdk.Extensions;
 
@@ -52,37 +49,6 @@ namespace VCT.Client.Modules
 			Console.WriteLine("Saying ok for test {0}", _testInfo.TestName);
 			Shell.Do.SayTestOkToServer(testName, _testInfo);
 			return true;
-//
-//			//if hash for stable and testing files equal just return;
-//			if (!string.IsNullOrEmpty(stableHash) && string.Equals(stableHash, testingHash, StringComparison.InvariantCultureIgnoreCase))
-//			{
-//				Shell.Do.SendTestingFiles(null, _testInfo.TestName);
-//				return true;
-//			}
-//
-//			DirectoryInfo stableDirectory = testingImageFile.Directory.CreateSubdirectory("Stable");
-//			DirectoryInfo diffDirectory = testingImageFile.Directory.CreateSubdirectory("Diff");
-//
-//			//get stable files and
-//			//if there are not any stable file for test we need generate diff directory and create it on server side;
-//			var success = Shell.Do.GetStableFile(stableDirectory, testingImageFile.Name, testName);
-//			if (!success)
-//			{
-//				Shell.Do.SendTestingFile(testingImageFile, testName);
-//				Shell.Do.SendDiffFiles(diffDirectory, testName);
-//				return false;
-//			}
-//
-//			var stableImageFile = new FileInfo(Path.Combine(stableDirectory.FullName, testingImageFile.Name));
-//			var diffFile = new FileInfo(Path.Combine(diffDirectory.FullName, testingImageFile.Name));
-//
-//			var equal = CompareImageFiles(testingImageFile, stableImageFile, diffFile);
-//			if (!equal)
-//			{
-//				Shell.Do.SendDiffFile(diffFile, testName);
-//				Shell.Do.SendStableFile(stableImageFile, testName);
-//				Shell.Do.SendTestingFile(testingImageFile, testName);
-//			}
 		}
 
 		/// <summary>
@@ -105,11 +71,6 @@ namespace VCT.Client.Modules
 			}
 
 			return equal;
-		}
-
-		private bool CompareImageFiles(FileInfo testingImageFile, FileInfo stableImageFile, FileInfo diffFile)
-		{
-			return ImageFileComparer.ComparingFilesAreEqual(stableImageFile, testingImageFile, diffFile);
 		}
 	}
 }

@@ -125,6 +125,32 @@ namespace VCT.Server.Entities
 		public string Name { get; set; }
 	}
 
+	/// <summary>
+	/// Represent a mask area which must be excluded from comparison
+	/// </summary>
+	public class Mask
+	{
+		public Int64 Id { get; set; }
+		/// <summary>
+		/// X offset from left top corner
+		/// </summary>
+		public Int64 XOffset { get; set; }
+		/// <summary>
+		/// Y offset from left top corner
+		/// </summary>
+		public Int64 YOffset { get; set; }
+		/// <summary>
+		/// Width of the rectangle to be exluded
+		/// </summary>
+		public Int64 Width { get; set; }
+		/// <summary>
+		/// Height of the rectangle to be exluded
+		/// </summary>
+		public Int64 Height { get; set; }
+
+		public Int64 StableFileId { get; set; }
+	}
+
 	#region environment tables
 	public class Browser
 	{
