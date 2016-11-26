@@ -49,14 +49,19 @@ namespace VCT.Test
 			var outputScreen = NewFile(@"C:\projects\VCT\Output\Google\google.png");
 
 			driver.Manage().Window.Maximize();
-			driver.Navigate().GoToUrl("http://www.google.com/");
+//			driver.Navigate().GoToUrl("http://www.google.com");
+			driver.Navigate().GoToUrl("file:///C:/projects/Visual.Comparing.Tool/index.html");
+//			driver.Navigate().GoToUrl("chrome://version/");
 //			var equal = SampleTestCore.IsPageScreensAreEqual(driver, outputScreen, TestContext.CurrentContext.Test.FullName);
 
 			var comparer = new VisualComparer("TestProject", TestContext.CurrentContext.Test.FullName, driver);
-			var equal = comparer.VerifyPage();
-			var equal2 = comparer.VerifyPage();
+			var equal = comparer.VerifyPage("Page1");
+
+			driver.Navigate().GoToUrl("file:///C:/projects/Visual.Comparing.Tool/index2.html");
+			var equal2 = comparer.VerifyPage("Page2");
 
 			Assert.IsTrue(equal);
+//			Assert.IsTrue(equal2);
 		}
 
 		private FileInfo NewFile(string path)

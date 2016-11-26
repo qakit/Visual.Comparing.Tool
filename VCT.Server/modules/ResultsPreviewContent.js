@@ -3,7 +3,7 @@ import React from 'react'
 import NavigationResultBar from './NavigationResultBar'
 import TestResultContainer from './TestResultContainer'
 
-var fakePreviewData = [{"TestName":"","Artifacts":[{"StableFile":{"Name":"","Value":""},"TestingFile":{"Name":"","Value":""},"DiffFile":{"Name":"","Value":""}}]}]
+var fakePreviewData = [{"TestName":"","EnvironmentId" : 0,"Artifacts":[{"StableFile":{"Name":"","Value":""},"TestingFile":{"Name":"","Value":""},"DiffFile":{"Name":"","Value":""}}]}]
 
 export default React.createClass({
     getCurrentImageName: function(artifact) {
@@ -133,11 +133,12 @@ export default React.createClass({
         }
         if (id === "acceptFail") {
             var testName = this.state.testData[this.state.testIndex].TestName;
+            var environmentId = this.state.testData[this.state.testIndex].EnvironmentId;
             var projectName = this.props.params.projectId;
             var suiteName = this.props.params.suiteId;
             if(testName === "") return;
             
-            var url = '../api/' + projectName + "/" + suiteName + '/' + testName + '/accept';
+            var url = '../api/' + projectName + "/" + suiteName + '/' + testName + '/' + environmentId + '/accept';
             $.ajax({
                 url: url,
                 dataType: 'text',

@@ -16,6 +16,7 @@ using VCT.Sdk.Extensions;
 using VCT.Server.Entities;
 using VCT.Server.EqualityComparers;
 using VCT.Server.Helpers;
+using Environment = VCT.Server.Entities.Environment;
 
 namespace VCT.Server
 {
@@ -43,10 +44,10 @@ namespace VCT.Server
 		/// <param name="projectId">Project Id</param>
 		/// <returns></returns>
 		[HttpGet]
-		[Route("{projectId}/suites")]
-		public JsonResult<List<Suite>> GetSuites(string projectId)
+		[Route("{projectName}/suites")]
+		public JsonResult<List<Suite>> GetSuites(string projectName)
 		{
-			return Json(GetSuitesInformation(projectId));
+			return Json(GetSuitesInformation(projectName));
 		}
 
 		/// <summary>
@@ -56,65 +57,94 @@ namespace VCT.Server
 		/// <param name="suiteId"></param>
 		/// <returns></returns>
 		[HttpGet]
-		[Route("{projectId}/{suiteId}/tests")]
-		public JsonResult<List<FailedTest>> GetFailedTests(string projectId, string suiteId)
+		[Route("{projectName}/{suiteName}/tests")]
+		public JsonResult<List<FailedTest>> GetFailedTests(string projectName, string suiteName)
 		{
-			return Json(GetFailedTestsInformation(projectId, suiteId));
-		}
-
-		/// <summary>
-		/// Get all stable files for specified test
-		/// </summary>
-		/// <param name="projectId">project id/project name to whcih test belong</param>
-		/// <param name="testId">test id /name of the test/ in the project</param>
-		/// <returns></returns>
-		[HttpGet]
-		[Route("{projectId}/{testId}/stable")]
-		public HttpResponseMessage GetStableTestFiles(string projectId, string testId)
-		{
-			return WebHelpers.SendFilesToClient(Storage.Project(projectId).StableFiles.GetDirectories(testId).FirstOrDefault());
-		}
-
-		/// <summary>
-		/// Get the sable version of the specified file
-		/// </summary>
-		/// <param name="projectId">project id/project name to whcih test belong</param>
-		/// <param name="testId">test id /name of the test/ in the project</param>
-		/// <param name="fileName">name of the file to which stable file must be returned</param>
-		/// <returns></returns>
-		[HttpGet]
-		[Route("{projectId}/{testId}/{fileName}/stable")]
-		public HttpResponseMessage GetStableTestFile(string projectId, string testId, string fileName)
-		{
-			return WebHelpers.SendFilesToClient(Storage.Project(projectId).StableFiles.GetDirectories(testId).FirstOrDefault(), fileName);
+			return Json(GetFailedTestsInformation(projectName, suiteName));
 		}
 
 		/// <summary>
 		/// Gets the hash for the stable file with specified name
 		/// </summary>
-		/// <param name="projectId">project id/project name to which test belong</param>
-		/// <param name="testId">test id /name of the test/ in the project</param>
+		/// <param name="projectName">project id/project name to which test belong</param>
+		/// <param name="testName">test id /name of the test/ in the project</param>
 		/// <param name="fileName">name of the file to which hash must be returned</param>
 		/// <returns></returns>
 		[HttpPost]
-		[Route("{projectId}/{testId}/{fileName}/stable/hash")]
-		public HttpResponseMessage GetStableTestFileHash(string projectId, string testId, string fileName)
+		[Route("{projectName}/{testName}/{fileName}/stable/hash")]
+		public HttpResponseMessage GetStableTestFileHash(string projectName, string testName, string fileName)
 		{
-			using (var storage = new StorageContext())
+			var testInfo = JsonConvert.DeserializeObject<TestInfo>(Request.Content.ReadAsStringAsync().Result);
+
+			using (var ctx = new StorageContext())
 			{
-				var test = storage.Tests.FirstOrDefault(t => t.Name == testId);
+				//find environment first
+				var environment = GetEnvironment(testInfo.Browser, testInfo.WindowSize);
+				//find project and test
+				var project = ctx.Projects.FirstOrDefault(p => p.Name == projectName);
+				var test = ctx.Tests.FirstOrDefault(t => t.Name == testName && t.ProjectId == project.Id);
+				//if no test return no content
 				if (test == null) return new HttpResponseMessage(HttpStatusCode.NoContent);
 
-				var stableFile =
-					storage.StableFiles.FirstOrDefault(
-						sf => sf.TestName == testId && sf.ProjectName == projectId && sf.FileName == fileName);
-
+				//find stable file
+				var stableFile = ctx.StableFiles.FirstOrDefault(sf => sf.TestId == test.Id && sf.EnvironmentId == environment.Id);
 				if (stableFile == null) return new HttpResponseMessage(HttpStatusCode.NoContent);
 
-				var hash = Utils.HashFromBase64(stableFile.Value);
+				var hash = Utils.HashFromBase64(stableFile.File);
 
 				var content = new StringContent(hash);
 				return new HttpResponseMessage { Content = content };
+			}
+		}
+
+		private Environment GetEnvironment(string browser, Size windowSize)
+		{
+			using (var ctx = new StorageContext())
+			{
+				var browserEntity =
+					ctx.Browsers.FirstOrDefault(b => b.Name == browser) ??
+					ctx.Browsers.Add(new Browser {Name = browser});
+				ctx.SaveChanges();
+
+				var resolutionEntity =
+					ctx.Resolutions.FirstOrDefault(r => r.Width == windowSize.Width && r.Height == windowSize.Height) ??
+					ctx.Resolutions.Add(new Resolution {Height = windowSize.Height, Width = windowSize.Width});
+				ctx.SaveChanges();
+
+				var environment =
+					ctx.Environments.FirstOrDefault(env => env.BrowserId == browserEntity.Id && env.ResolutionId == resolutionEntity.Id) ??
+					ctx.Environments.Add(new Environment {BrowserId = browserEntity.Id, ResolutionId = resolutionEntity.Id});
+				ctx.SaveChanges();
+				return environment;
+			}
+		}
+
+		[HttpPost]
+		[Route("{projectName}/{suiteName}/{testName}/status/passed")]
+		public void MarkTestAsPassed(string projectName, string suiteName, string testName)
+		{
+			var testInfo = JsonConvert.DeserializeObject<TestInfo>(Request.Content.ReadAsStringAsync().Result);
+
+			using (var ctx = new StorageContext())
+			{
+				var environment = GetEnvironment(testInfo.Browser, testInfo.WindowSize);
+				var project = ctx.Projects.FirstOrDefault(p => p.Name == projectName);
+				var suite = ctx.Suites.FirstOrDefault(s => s.Name == suiteName && s.ProjectId == project.Id);
+				var test = ctx.Tests.FirstOrDefault(t => t.Name == testName && t.ProjectId == project.Id);
+				
+				var runningTest = new RunningTest
+				{
+					EnvironmentId = environment.Id,
+					Passed = true,
+					SuiteId = suite.Id,
+					TestId = test.Id
+				};
+
+				if (!ctx.RunningTests.Contains(runningTest, new RunningTestComparer()))
+				{
+					ctx.RunningTests.Add(runningTest);
+					ctx.SaveChanges();
+				}
 			}
 		}
 
@@ -126,80 +156,47 @@ namespace VCT.Server
 		/// <param name="testId">test id /name of the test/ in the project</param>
 		/// <returns></returns>
 		[HttpPost]
-		[Route("{projectId}/{suiteId}/{testId}/stable")]
+		[Route("{projectName}/{suiteName}/{testName}/stable")]
 		public Task<IHttpActionResult> PostStable(string projectId, string suiteId, string testId)
 		{
 			return GetFilesFromClient(Storage.Project(projectId).Suite(suiteId).StableTestDirectory(testId));
 		}
 
 		[HttpPost]
-		[Route("{projectId}/{suiteId}/{testId}/accept")]
-		public HttpResponseMessage AcceptStable(string projectId, string suiteId, string testId)
+		[Route("{projectName}/{suiteName}/{testName}/{environmentId}/accept")]
+		public HttpResponseMessage AcceptStable(string projectName, string suiteName, string testName, int environmentId)
 		{
-//			//file server changes
-//			var suiteDirectory = Storage.Project(projectId).Suite(suiteId);
-//			//clear diff files (as they are not necessary any more)
-//			suiteDirectory.DiffTestDirectory(testId).ClearContent();
-//
-//			//copy content of the testing files for sepcified test to stable dirrectory
-//			var testingDirectory = suiteDirectory.TestingTestDirectory(testId);
-//			var stableFilesDirectory = suiteDirectory.StableTestDirectory(testId);
-//
-//			//update stable files in current test run
-//			testingDirectory.CopyTo(stableFilesDirectory);
-//			//copy and replace stable files in global storage for 'Stable Files'
-//			testingDirectory.CopyTo(Storage.Project(projectId).StableTestDirectory(testId));
-//
 			using (var ctx = new StorageContext())
 			{
-				var suite = ctx.Suites.FirstOrDefault(s => s.Name == suiteId);
-				var test = ctx.Tests.FirstOrDefault(t => t.Name == testId && t.SuiteId == suite.Id);
-				var stableFiles = ctx.StableFiles.Where(sf => sf.TestName == test.Name && sf.ProjectName == projectId);
+				var project = ctx.Projects.FirstOrDefault(p => p.Name == projectName);
+				var suite = ctx.Suites.FirstOrDefault(s => s.Name == suiteName && s.ProjectId == project.Id);
+				var test = ctx.Tests.FirstOrDefault(t => t.Name == testName && t.ProjectId == project.Id);
+				var runningTest =
+					ctx.RunningTests.FirstOrDefault(
+						t => t.SuiteId == suite.Id && t.TestId == test.Id && t.EnvironmentId == environmentId);
 
-				//clear all diff files
-				test.DiffFiles.Clear();
-				//save changes
-				ctx.SaveChanges();
-
-				foreach (ArtifactFile artifactFile in test.TestingFiles)
+				foreach (RunningTestResult runningTestResult in runningTest.TestResults)
 				{
+					//clear diff file first
+					runningTestResult.DiffFile = "";
+
+					//get testing and move it to stable
 					var stableFile =
 						ctx.StableFiles.FirstOrDefault(
-							sf => sf.FileName == artifactFile.FileName && sf.TestName == test.Name && sf.ProjectName == projectId);
+							sf => sf.TestId == test.Id && sf.EnvironmentId == environmentId && sf.Name == runningTestResult.Name);
 					if (stableFile == null)
 					{
-						ctx.StableFiles.Add(new StableFile
+						stableFile = ctx.StableFiles.Add(new StableFile
 						{
-							FileName = artifactFile.FileName,
-							ProjectName = projectId,
-							TestName = test.Name,
-							Value = artifactFile.Value
+							EnvironmentId = environmentId,
+							Name = runningTestResult.Name,
+							TestId = test.Id
 						});
 						ctx.SaveChanges();
 					}
-					else
-					{
-						stableFile.Value = artifactFile.Value;
-						ctx.SaveChanges();
-					}
+					stableFile.File = runningTestResult.TestingFile;
+					ctx.SaveChanges();
 				}
-
-//				//now add stable files for current test and project
-//
-//				foreach (FileInfo imageFile in images)
-//				{
-//					ctx.StableFiles.Add(new StableFile
-//					{
-//						FullPath = imageFile.FullName,
-//						Name = imageFile.Name,
-//						ProjectName = projectId,
-//						//TODO move it to separate method
-//						RelativePath = "..\\" + MakeRelativePath(Storage.StorageDirectory.FullName, imageFile.FullName) + "?date=" +
-//						               DateTime.Now,
-//						TestName = test.Name
-//					});
-//					ctx.SaveChanges();
-//				}
 			}
 			
 
@@ -209,23 +206,16 @@ namespace VCT.Server
 		/// <summary>
 		/// Gets the files from the client and put them to the testing folder for the specified suite/run
 		/// </summary>
-		/// <param name="projectId">project id/project name to which test belong</param>
+		/// <param name="projectName">project id/project name to which test belong</param>
 		/// <param name="suiteId">suite id/suite name to which test belong</param>
 		/// <param name="testId">test id /name of the test/ in the project</param>
 		/// <returns></returns>
 		[HttpPost]
-		[Route("{projectId}/{suiteId}/{testId}/testing")]
-		public async Task<IHttpActionResult> PostTesting(string projectId, string suiteId, string testId)
+		[Route("{projectName}/{suiteName}/{testName}/testing")]
+		public async Task<IHttpActionResult> PostTesting(string projectName, string suiteName, string testName)
 		{
-			//TODO
-			//take files from client
-			//find out stable
-			//if no stable put testing to folder and made related records in db
-			//if stable => compare
-			//add diff/testing/stable
-
 			//1. Get files
-			var outputDirectory = Storage.Project(projectId).Suite(suiteId).TestingTestDirectory(testId);
+			var outputDirectory = Storage.Project(projectName).Suite(suiteName).TestingTestDirectory(testName);
 
 			if (!Request.Content.IsMimeMultipartContent("form-data"))
 			{
@@ -235,101 +225,91 @@ namespace VCT.Server
 			var multiPartFormDataStreamProvider = new UploadMultipartFormProvider(outputDirectory.FullName);
 			await Request.Content.ReadAsMultipartAsync(multiPartFormDataStreamProvider);
 
+			IEnumerable<string> headerCollection;
+			var stringContent = Request.Headers.GetValues("TestInfo").FirstOrDefault();
+			var testInfo = JsonConvert.DeserializeObject<TestInfo>(stringContent);
+
 			//2. Compare each file to stable
 			var files = outputDirectory.GetImageFiles();
 			using (var ctx = new StorageContext())
 			{
 				//you could have old test here for previous suite
 				//this must be handled in future
-				var suite = ctx.Suites.FirstOrDefault(s => s.Name == suiteId);
+				var environment = GetEnvironment(testInfo.Browser, testInfo.WindowSize);
+				var project = ctx.Projects.FirstOrDefault(p => p.Name == projectName);
+				var suite = ctx.Suites.FirstOrDefault(s => s.Name == suiteName);
+
 				//find current test
-				var test = ctx.Tests.FirstOrDefault(t => t.Name == testId && t.SuiteId == suite.Id);
-				//if not current test create
+				var test = ctx.Tests.FirstOrDefault(t => t.Name == testName && t.ProjectId == project.Id);
+				RunningTest runningTest = null;
+
+				//if there is no unique test description let's create it
 				if (test == null)
 				{
-					ctx.Tests.Add(new Test
+					test = ctx.Tests.Add(new Test
 					{
-						Name = testId , 
-						SuiteId = suite.Id,
-						Passed = false
+						Name = testName , 
+						ProjectId = project.Id
 					});
 					ctx.SaveChanges();
-					test = ctx.Tests.FirstOrDefault(t => t.Name == testId && t.SuiteId == suite.Id);
+					//if there were not such test let's create and corresponding running test in suite collection
+					
 				}
+
+				runningTest = suite.Tests.FirstOrDefault(t => t.TestId == test.Id && t.EnvironmentId == environment.Id);
+				if (runningTest == null)
+				{
+					runningTest = ctx.RunningTests.Add(new RunningTest
+					{
+						Passed = false,
+						TestId = test.Id,
+						SuiteId = suite.Id,
+						EnvironmentId = environment.Id,
+					});
+					ctx.SaveChanges();
+				}
+				
 
 				foreach (FileInfo testingFile in files)
 				{
 					//get stable file from 
-					var stableFile = ctx.StableFiles.FirstOrDefault(sf => sf.TestName == test.Name && sf.FileName == testingFile.Name && sf.ProjectName == projectId);
-					//if no stable file when just put testing file to current test
-					if (stableFile == null)
+					var stableFile =
+						ctx.StableFiles.FirstOrDefault(
+							sf => sf.Name == testingFile.Name && sf.TestId == test.Id && sf.EnvironmentId == environment.Id);
+
+					//create artifact and verify its existance in running test
+					var runningTestResult = new RunningTestResult
 					{
-						var testingFileArtifact = new ArtifactFile
-						{
-							FileName = testingFile.Name,
-							Value = Utils.ImageToBase64(testingFile),
-							Test = test,
-							Type = ArtifactType.Testing
-						};
+						TestingFile = Utils.ImageToBase64(testingFile),
+						Name = testingFile.Name,
+						DiffFile = "",
+						RunningTestId = runningTest.Id
+					};
 
-						//if artifact not exist insert as testing file for current test
-						if (!test.TestingFiles.ToList().Contains(testingFileArtifact, new ArtifactFileComparer()))
-						{
-							//insert
-							ctx.ArtifactFiles.Add(testingFileArtifact);
-							test.TestingFiles.Add(testingFileArtifact);
-
-							//SAVE
-							ctx.SaveChanges();
-						}
-						//ignore if artifact exists
+					//if file not exists add it
+					if (!runningTest.TestResults.Contains(runningTestResult, new RunningTestResultComparer()))
+					{
+						runningTest.TestResults.Add(runningTestResult);
+						ctx.SaveChanges();
 					}
-					else
+
+					//if no stable file when just put testing file to current test
+					if (stableFile != null)
 					{
-						//there is a stable file
-
-						//first make sure that there is no any artifact already
-						//first check testing
-						var testingFileArtifact = new ArtifactFile
-						{
-							FileName = testingFile.Name,
-							Value = Utils.ImageToBase64(testingFile),
-							Test = test,
-							Type = ArtifactType.Testing
-						};
-
-						//if artifact not exist insert as testing file for current test
-						if (!test.TestingFiles.AsEnumerable().Contains(testingFileArtifact, new ArtifactFileComparer()))
-						{
-							//insert
-							ctx.ArtifactFiles.Add(testingFileArtifact);
-							test.TestingFiles.Add(testingFileArtifact);
-							//SAVE
-							ctx.SaveChanges();
-						}
 						//now check diff file
-						var diffDirectory = new DirectoryInfo(@"C:\projects\Visual.Comparing.Tool\Output");
+						var diffDirectory = new DirectoryInfo(@"C:\projects\Visual.Comparing.Tool\VCT.Server\Output");
 						var diffFile = new FileInfo(Path.Combine(
 							diffDirectory.FullName,
 							testingFile.Name));
 
 						//first compare
-						var diff = ImageFileComparer.GenerateDiffFile(Utils.Base64ToImage(stableFile.Value), Image.FromFile(testingFile.FullName), diffFile);
+						var diff = ImageFileComparer.GenerateDiffFile(Utils.Base64ToImage(stableFile.File), Image.FromFile(testingFile.FullName), diffFile);
 
-						var diffFileArtifact = new ArtifactFile
-						{
-							FileName = diffFile.Name,
-							Value = Utils.ImageToBase64(diff, ImageFormat.Png),
-							Test = test,
-							Type = ArtifactType.Diff
-						};
-
-						//insert
-						ctx.ArtifactFiles.Add(diffFileArtifact);
-						test.DiffFiles.Add(diffFileArtifact);
-						//SAVE
+						//add diff to test result
+						runningTest.TestResults.Where(tr => tr.Name == testingFile.Name).FirstOrDefault().DiffFile =
+							Utils.ImageToBase64(diff, ImageFormat.Png);
+						//save changes
 						ctx.SaveChanges();
-
 					}
 				}
 			}
@@ -344,26 +324,26 @@ namespace VCT.Server
 		/// <param name="testId">test id /name of the test/ in the project</param>
 		/// <returns></returns>
 		[HttpPost]
-		[Route("{projectId}/{suiteId}/{testId}/diff")]
+		[Route("{projectName}/{suiteName}/{testName}/diff")]
 		public Task<IHttpActionResult> PostDiff(string projectId, string suiteId, string testId)
 		{
 			return GetFilesFromClient(Storage.Project(projectId).Suite(suiteId).DiffTestDirectory(testId));
 		}
 
 		[HttpPost]
-		[Route("{projId}/suite/start")]
-		public string SuiteStart(string projId)
+		[Route("{projectName}/suite/start")]
+		public string SuiteStart(string projectName)
 		{
 			var dateTime = DateTime.Now;
 			string inceptionTime = dateTime.ToString(DateFormat);
 
-			Storage.Project(projId).Suite(inceptionTime);
+			Storage.Project(projectName).Suite(inceptionTime);
 			using (var context = new StorageContext())
 			{
-				var project = context.Projects.FirstOrDefault(p => p.Name == projId);
+				var project = context.Projects.FirstOrDefault(p => p.Name == projectName);
 				if (project == null)
 				{
-					project = context.Projects.Add(new Entities.Project { Name = projId });
+					project = context.Projects.Add(new Entities.Project { Name = projectName });
 					context.SaveChanges();
 				}
 
@@ -378,11 +358,18 @@ namespace VCT.Server
 		}
 
 		[HttpPost]
-		[Route("{projId}/suite/stop")]
-		public void SuiteStop(string projId)
+		[Route("{projectName}/{suiteName}/suite/stop")]
+		public void SuiteStop(string projectName, string suiteName)
 		{
-			string finishTime = DateTime.Now.ToString(DateFormat);
-			Console.WriteLine("[{0}] Suite stopped at {1}", projId, finishTime);
+			var finishTime = DateTime.Now;
+			using (var ctx = new StorageContext())
+			{
+				var project = ctx.Projects.FirstOrDefault(p => p.Name == projectName);
+				var suite = ctx.Suites.FirstOrDefault(s => s.Name == suiteName && s.ProjectId == project.Id);
+				suite.EndTime = finishTime;
+				ctx.SaveChanges();
+			}
+			Console.WriteLine("[{0}] Suite stopped at {1}", suiteName, finishTime.ToString(DateFormat));
 		}
 
 		/// <summary>
@@ -390,7 +377,7 @@ namespace VCT.Server
 		/// Necessary when we want to remove redundant files from system but have to save stable files
 		/// </summary>
 		[HttpGet]
-		[Route("{projectId}/stable/backup")]
+		[Route("{projectName}/stable/backup")]
 		public HttpResponseMessage BackupStableFilesForLatestBuild(string projectId)
 		{
 			try
@@ -423,7 +410,7 @@ namespace VCT.Server
 		/// <param name="suiteId"></param>
 		/// <returns></returns>
 		[HttpDelete]
-		[Route("{projectId}/{suiteId}/delete")]
+		[Route("{projectName}/{suiteName}/delete")]
 		public HttpResponseMessage DeleteSuite(string projectId, string suiteId)
 		{
 			Storage.Project(projectId).Suite(suiteId).Delete();
@@ -465,18 +452,6 @@ namespace VCT.Server
 				}
 			}
 			return projects;
-
-
-			//			var projectDirectories = Storage.Projects;
-			//			//TODO remove id after all changes
-			//			int id = 1;
-			//			foreach (Storage.StorageProject projectDirectory in projectDirectories)
-			//			{
-			//				var suitesCount = projectDirectory.Suites.Count;
-			//				projects.Add(new Project { Id = id, Name = projectDirectory.Directory.Name, SuitesCount = suitesCount });
-			//				id++;
-			//			}
-			//			return projects;
 		}
 
 		private List<Suite> GetSuitesInformation(string projectId)
@@ -491,9 +466,8 @@ namespace VCT.Server
 
 				foreach (Entities.Suite suite in suites)
 				{
-					var tests = ctx.Tests.Where(t => t.SuiteId == suite.Id).ToList();
-					var failed = tests.Count(t => !t.Passed);
-					var passed = tests.Count(t => t.Passed);
+					var failed = suite.Tests.Count(t => !t.Passed);
+					var passed = suite.Tests.Count(t => t.Passed);
 
 					suitesInfo.Add(new Suite
 					{
@@ -517,43 +491,47 @@ namespace VCT.Server
 			{
 				var project = ctx.Projects.FirstOrDefault(p => p.Name == projectId);
 				var suite = ctx.Suites.FirstOrDefault(s => s.ProjectId == project.Id && s.Name == suiteId);
-				var failedTests = ctx.Tests.Where(t => t.SuiteId == suite.Id && !t.Passed).ToList();
+				var failedTests = ctx.RunningTests.Where(t => t.SuiteId == suite.Id && !t.Passed).ToList();
 
 				
-				foreach (Test failedTest in failedTests)
+				foreach (RunningTest failedTest in failedTests)
 				{
 					var artifactsCollection = new List<Tuple>();
-					var stableFiles = ctx.StableFiles.Where(sf => sf.TestName == failedTest.Name && sf.ProjectName == project.Name).ToList();
+					var testDescription = ctx.Tests.FirstOrDefault(t => t.Id == failedTest.TestId);
 
-					var listOfArtifacts =
-						failedTest.DiffFiles.Select(df => df.FileName)
-							.Union(failedTest.TestingFiles.Select(tf => tf.FileName)).Union(stableFiles.Select(sf => sf.FileName));
+					var stableFiles = ctx.StableFiles.Where(sf => sf.TestId == failedTest.TestId && sf.EnvironmentId == failedTest.EnvironmentId).ToList();
+
+					var listOfArtifacts = failedTest.TestResults.Select(df => df.Name)
+							.Union(stableFiles.Select(sf => sf.Name));
 
 					foreach (string singleArtifact in listOfArtifacts)
 					{
-						var stableFile = stableFiles.FirstOrDefault(sf => sf.FileName == singleArtifact);
-						var testingFile = failedTest.TestingFiles.FirstOrDefault(tf => tf.FileName == singleArtifact);
-						var diffFile = failedTest.DiffFiles.FirstOrDefault(df => df.FileName == singleArtifact);
+						var testResult = failedTest.TestResults.Where(t => t.Name == singleArtifact);
+
+						var stableFile = stableFiles.FirstOrDefault(sf => sf.Name == singleArtifact);
+						var testingFile = testResult.Select(tf => tf.TestingFile).FirstOrDefault() ?? stableFile.File;
+						var diffFile = testResult.Select(tf => tf.DiffFile).FirstOrDefault() ?? "";
 
 						var stableFileDescription = stableFile == null
 							? EmptyArtifact()
 							: new File
 							{
-								Name = stableFile.FileName,
-								Value = stableFile.Value,
+								Name = stableFile.Name,
+								Value = stableFile.File,
 							};
 
 						artifactsCollection.Add(new Tuple
 						{
-							DiffFile = GetAtrifactDescription(diffFile),
+							DiffFile = GetAtrifactDescription(singleArtifact, diffFile),
 							StableFile = stableFileDescription,
-							TestingFile = GetAtrifactDescription(testingFile),
+							TestingFile = GetAtrifactDescription(singleArtifact, testingFile),
 						});
 					}
 					tests.Add(new FailedTest
 					{
-						TestName = failedTest.Name,
-						Artifacts = artifactsCollection
+						TestName = testDescription.Name,
+						Artifacts = artifactsCollection,
+						EnvironmentId = (int) failedTest.EnvironmentId
 					});
 				}
 			}
@@ -565,13 +543,12 @@ namespace VCT.Server
 		/// </summary>
 		/// <param name="artifactFile">Artifact as <see cref="FileInfo"/></param>
 		/// <returns><see cref="File"/> with Name (empty if null), Path (empty if null)</returns>
-		private File GetAtrifactDescription(ArtifactFile artifact)
+		private File GetAtrifactDescription(string fileName, string base64Value)
 		{
-			if (artifact == null) return EmptyArtifact();
 			return new File
 			{
-				Name = artifact.FileName,
-				Value = artifact.Value
+				Name = fileName,
+				Value = base64Value
 			};
 		}
 

@@ -49,8 +49,8 @@ namespace VCT.Client.Modules
 				Shell.Do.SendTestingFile(testingImageFile, testName, _testInfo);
 				return false;
 			}
-
-			Shell.Do.SayTestOkToServer(testName);
+			Console.WriteLine("Saying ok for test {0}", _testInfo.TestName);
+			Shell.Do.SayTestOkToServer(testName, _testInfo);
 			return true;
 //
 //			//if hash for stable and testing files equal just return;

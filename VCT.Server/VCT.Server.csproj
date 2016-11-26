@@ -113,7 +113,7 @@
     <Compile Include="ApiController.cs" />
     <Compile Include="Entities\Blog.cs" />
     <Compile Include="Entities\Project.cs" />
-    <Compile Include="EqualityComparers\ArtifactFileComparer.cs" />
+    <Compile Include="EqualityComparers\RunningTestComparer.cs" />
     <Compile Include="Helpers\SimpleLogger.cs" />
     <Compile Include="Helpers\UploadMultipartFormProvider.cs" />
     <Compile Include="Helpers\WebHelpers.cs" />

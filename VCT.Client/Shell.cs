@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -83,7 +84,7 @@ namespace VCT.Client
 		/// </summary>
 		public void SuiteCompleted()
 		{
-			string url = string.Format("{0}/tests/{1}/suite/stop", ServerAddress, ProjectId);
+			string url = string.Format("{0}/api/{1}/{2}/suite/stop", ServerAddress, ProjectId, SuiteId);
 			PostMessage(url, "Suite completed");
 			SuiteId = "";
 		}
@@ -129,9 +130,10 @@ namespace VCT.Client
 
 			using (var httpClient = new HttpClient())
 			{
-				var content = new MultipartFormDataContent();
 				HttpResponseMessage result;
-				testingFile.Refresh();
+				var content = new MultipartContent("form-data", Guid.NewGuid().ToString());
+
+								testingFile.Refresh();
 				if (!testingFile.Exists)
 				{
 					result = httpClient.PostAsync(restUrl, content).Result;
@@ -139,13 +141,42 @@ namespace VCT.Client
 					return;
 				}
 
+				content.Headers.Add("TestInfo", JsonConvert.SerializeObject(testInfo));
 				var fs = File.Open(testingFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
-				var fileContent = new StreamContent(fs);
-				content.Add(fileContent, "file", testingFile.Name);
-				content.Add(new StringContent(JsonConvert.SerializeObject(testInfo), Encoding.UTF8, "application/json"));
+				
+				StreamContent filePart = new StreamContent(fs);
+				
+				filePart.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data");
+				filePart.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+				filePart.Headers.ContentDisposition.FileName = testingFile.Name;
+				
+//				var jsongPart = new StringContent(JsonConvert.SerializeObject(testInfo), Encoding.UTF8, "application/json");
+//				jsongPart.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data");
+//				jsongPart.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+
+				content.Add(filePart);
+//				content.Add(jsongPart);
+				
 
 				result = httpClient.PostAsync(restUrl, content).Result;
 				Console.WriteLine(result);
+//				var content = new MultipartFormDataContent();
+//				HttpResponseMessage result;
+//				testingFile.Refresh();
+//				if (!testingFile.Exists)
+//				{
+//					result = httpClient.PostAsync(restUrl, content).Result;
+//					Console.WriteLine(result);
+//					return;
+//				}
+//
+//				var fs = File.Open(testingFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
+//				var fileContent = new StreamContent(fs);
+//				content.Add(fileContent, "file", testingFile.Name);
+//				content.Add(new StringContent(JsonConvert.SerializeObject(testInfo), Encoding.UTF8, "application/json"));
+//
+//				result = httpClient.PostAsync(restUrl, content).Result;
+//				Console.WriteLine(result);
 			}
 		}
 
@@ -247,10 +278,19 @@ namespace VCT.Client
 			//TODO save all diff files from diff files folder to server (with removing old diff files first)
 		}
 
-
-		public void SayTestOkToServer(string testName)
+		/// <summary>
+		/// Mark test as passed on server
+		/// </summary>
+		/// <param name="testName"></param>
+		public void SayTestOkToServer(string testName, TestInfo testInfo)
 		{
-			//TODO
+			string url = string.Format("{0}/api/{1}/{2}/{3}/status/passed", ServerAddress, ProjectId, SuiteId, testName);
+
+			using (var httpClient = new HttpClient())
+			{
+				var stringContent = new StringContent(JsonConvert.SerializeObject(testInfo), Encoding.UTF8, "application/json");
+				var result = httpClient.PostAsync(url, stringContent).Result;
+			}
 		}
 
 		/// <summary>

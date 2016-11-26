@@ -18,11 +18,13 @@ namespace VCT.Server
 
 		public virtual DbSet<Entities.Project> Projects { get; set; }
 		public virtual DbSet<Entities.Suite> Suites { get; set; }
-		public virtual DbSet<Test> Tests { get; set; }
+		public virtual DbSet<Entities.Test> Tests { get; set; }
+		public virtual DbSet<Entities.RunningTest> RunningTests { get; set; }
+		public virtual DbSet<Entities.RunningTestResult> RunningTestResults { get; set; }
+		public virtual DbSet<Entities.StableFile> StableFiles { get; set; }
+
 		public virtual DbSet<Resolution> Resolutions { get; set; }
 		public virtual DbSet<Browser> Browsers { get; set; }
 		public virtual DbSet<Entities.Environment> Environments { get; set; }
-		public virtual DbSet<ArtifactFile> ArtifactFiles { get; set; }
-		public virtual DbSet<StableFile> StableFiles { get; set; }
 	}
 }
