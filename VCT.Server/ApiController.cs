@@ -351,26 +351,108 @@ namespace VCT.Server
 		/// </summary>
 		[HttpGet]
 		[Route("{projectName}/stable/backup")]
-		public HttpResponseMessage BackupStableFilesForLatestBuild(string projectId)
+		public HttpResponseMessage BackupStableFilesForLatestBuild(string projectName)
 		{
+			//TODO migratio nhere from file storage to db
 			try
 			{
-				//get suites and sort them in asc order
-				var suites = Storage.Project(projectId).Suites.OrderBy(s => s.DateStarted);
-
-				foreach (Storage.StorageProject.ProjectSuite suite in suites)
+				using (var ctx = new StorageContext())
 				{
-					var tests = suite.StableFilesDirectory.GetDirectories("*", SearchOption.TopDirectoryOnly);
-					foreach (DirectoryInfo test in tests)
+					//find project if any. If not, create
+					var project = ctx.Projects.FirstOrDefault(p => p.Name == projectName);
+					var browser = ctx.Browsers.First(b => b.Name == "chrome");
+					var resolution = ctx.Resolutions.Add(new Resolution {Height = 1024, Width = 1000});
+					ctx.SaveChanges();
+					var environment =
+						ctx.Environments.Add(new Entities.Environment {BrowserId = browser.Id, ResolutionId = resolution.Id});
+
+					if (project == null)
 					{
-						var copyToDir = new DirectoryInfo(Path.Combine(Storage.Project(projectId).StableFiles.FullName, test.Name));
-						test.CopyTo(copyToDir);
+						project = ctx.Projects.Add(new Entities.Project {Name = projectName});
+						ctx.SaveChanges();
+					}
+					//create list of tests
+					foreach (DirectoryInfo stableFileDirectory in Storage.Project(projectName).StableFiles.GetDirectories())
+					{
+						var test = ctx.Tests.Add(new Test {Name = stableFileDirectory.Name, ProjectId = project.Id});
+						ctx.SaveChanges();
+						foreach (FileInfo imageFile in stableFileDirectory.GetImageFiles())
+						{
+							ctx.StableFiles.Add(new StableFile
+							{
+								EnvironmentId = environment.Id,
+								File = Utils.ImageToBase64(imageFile),
+								Name = imageFile.Name,
+								TestId = test.Id
+							});
+							ctx.SaveChanges();
+						}
+					}
+					//save changes
+
+					//get suites and sort them in asc order
+					var fileStorageSuites = Storage.Project(projectName).Suites.OrderBy(s => s.DateStarted);
+					foreach (Storage.StorageProject.ProjectSuite fileStorageSuite in fileStorageSuites)
+					{
+						//add suite first
+						var suite = ctx.Suites.Add(new Entities.Suite
+						{
+							Name = fileStorageSuite.Directory.Name,
+							ProjectId = project.Id,
+							StartTime = fileStorageSuite.DateStarted
+						});
+						ctx.SaveChanges();
+						foreach (var testDirectory in fileStorageSuite.TestingFilesDirectory.GetDirectories())
+						{
+							var runningTest = ctx.RunningTests.Add(new RunningTest
+							{
+								SuiteId = suite.Id,
+								EnvironmentId = environment.Id,
+								Passed = false, //how to count??
+								TestId = ctx.Tests.FirstOrDefault(t => t.Name == testDirectory.Name).Id
+							});
+							ctx.SaveChanges();
+							foreach (FileInfo imageFile in testDirectory.GetImageFiles())
+							{
+								var diffFile = fileStorageSuite.DiffFilesDirectory.GetImageFiles().FirstOrDefault(f => f.Name == imageFile.Name);
+
+								var result = ctx.RunningTestResults.Add(new RunningTestResult
+								{
+									TestingFile = Utils.ImageToBase64(imageFile),
+									DiffFile = diffFile == null ? "" : Utils.ImageToBase64(diffFile),
+									Name = imageFile.Name,
+									RunningTestId = runningTest.Id
+								});
+								ctx.SaveChanges();
+								runningTest.TestResults.Add(result);
+								ctx.SaveChanges();
+							}
+						}
 					}
 				}
+//			try
+//			{
+//				//get suites and sort them in asc order
+//				var suites = Storage.Project(projectName).Suites.OrderBy(s => s.DateStarted);
+//
+//				foreach (Storage.StorageProject.ProjectSuite suite in suites)
+//				{
+//					var tests = suite.StableFilesDirectory.GetDirectories("*", SearchOption.TopDirectoryOnly);
+//					foreach (DirectoryInfo test in tests)
+//					{
+//						var copyToDir = new DirectoryInfo(Path.Combine(Storage.Project(projectName).StableFiles.FullName, test.Name));
+//						test.CopyTo(copyToDir);
+//					}
+//				}
+//			}
 			}
 			catch (Exception e)
 			{
-				return new HttpResponseMessage { StatusCode = HttpStatusCode.InternalServerError, Content = new StringContent(string.Format("Backup for stable files falied: {0}", e.Message)) };
+				return new HttpResponseMessage
+				{
+					StatusCode = HttpStatusCode.InternalServerError,
+					Content = new StringContent(string.Format("Backup for stable files falied: {0}", e.Message))
+				};
 			}
 
 			return new HttpResponseMessage { StatusCode = HttpStatusCode.OK, Content = new StringContent("Backup for stable files completed successfully") };
