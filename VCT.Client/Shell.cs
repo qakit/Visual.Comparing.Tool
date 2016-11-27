@@ -142,41 +142,18 @@ namespace VCT.Client
 				}
 
 				content.Headers.Add("TestInfo", JsonConvert.SerializeObject(testInfo));
+
 				var fs = File.Open(testingFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
-				
-				StreamContent filePart = new StreamContent(fs);
+				var filePart = new StreamContent(fs);
 				
 				filePart.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data");
 				filePart.Headers.ContentType = new MediaTypeHeaderValue("image/png");
 				filePart.Headers.ContentDisposition.FileName = testingFile.Name;
-				
-//				var jsongPart = new StringContent(JsonConvert.SerializeObject(testInfo), Encoding.UTF8, "application/json");
-//				jsongPart.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data");
-//				jsongPart.Headers.ContentType = new MediaTypeHeaderValue("application/json");
 
 				content.Add(filePart);
-//				content.Add(jsongPart);
-				
 
 				result = httpClient.PostAsync(restUrl, content).Result;
 				Console.WriteLine(result);
-//				var content = new MultipartFormDataContent();
-//				HttpResponseMessage result;
-//				testingFile.Refresh();
-//				if (!testingFile.Exists)
-//				{
-//					result = httpClient.PostAsync(restUrl, content).Result;
-//					Console.WriteLine(result);
-//					return;
-//				}
-//
-//				var fs = File.Open(testingFile.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
-//				var fileContent = new StreamContent(fs);
-//				content.Add(fileContent, "file", testingFile.Name);
-//				content.Add(new StringContent(JsonConvert.SerializeObject(testInfo), Encoding.UTF8, "application/json"));
-//
-//				result = httpClient.PostAsync(restUrl, content).Result;
-//				Console.WriteLine(result);
 			}
 		}
 
@@ -341,7 +318,6 @@ namespace VCT.Client
 		/// <param name="url">RestAPI url</param>
 		private static void SendFilesToServer(DirectoryInfo dir, string url)
 		{
-			
 			using (var httpClient = new HttpClient())
 			{
 				var content = new MultipartFormDataContent();

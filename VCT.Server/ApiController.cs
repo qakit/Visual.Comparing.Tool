@@ -102,17 +102,17 @@ namespace VCT.Server
 			{
 				var browserEntity =
 					ctx.Browsers.FirstOrDefault(b => b.Name == browser) ??
-					ctx.Browsers.Add(new Browser {Name = browser});
+					ctx.Browsers.Add(new Browser { Name = browser });
 				ctx.SaveChanges();
 
 				var resolutionEntity =
 					ctx.Resolutions.FirstOrDefault(r => r.Width == windowSize.Width && r.Height == windowSize.Height) ??
-					ctx.Resolutions.Add(new Resolution {Height = windowSize.Height, Width = windowSize.Width});
+					ctx.Resolutions.Add(new Resolution { Height = windowSize.Height, Width = windowSize.Width });
 				ctx.SaveChanges();
 
 				var environment =
 					ctx.Environments.FirstOrDefault(env => env.BrowserId == browserEntity.Id && env.ResolutionId == resolutionEntity.Id) ??
-					ctx.Environments.Add(new Entities.Environment {BrowserId = browserEntity.Id, ResolutionId = resolutionEntity.Id});
+					ctx.Environments.Add(new Entities.Environment { BrowserId = browserEntity.Id, ResolutionId = resolutionEntity.Id });
 				ctx.SaveChanges();
 				return environment;
 			}
@@ -130,7 +130,7 @@ namespace VCT.Server
 				var project = ctx.Projects.FirstOrDefault(p => p.Name == projectName);
 				var suite = ctx.Suites.FirstOrDefault(s => s.Name == suiteName && s.ProjectId == project.Id);
 				var test = ctx.Tests.FirstOrDefault(t => t.Name == testName && t.ProjectId == project.Id);
-				
+
 				var runningTest = new RunningTest
 				{
 					EnvironmentId = environment.Id,
@@ -183,7 +183,7 @@ namespace VCT.Server
 					ctx.SaveChanges();
 				}
 			}
-			
+
 
 			return new HttpResponseMessage { Content = new StringContent("All files have been moved from testing to stable directory. And were updated in global storage"), StatusCode = HttpStatusCode.OK };
 		}
@@ -206,7 +206,16 @@ namespace VCT.Server
 			{
 				return BadRequest("Unsupported media type");
 			}
-			if (!outputDirectory.Exists) outputDirectory.Create();
+
+			if (outputDirectory.Exists)
+			{
+				outputDirectory.ClearContent();
+			}
+			else
+			{
+				outputDirectory.Create();
+			}
+
 			var multiPartFormDataStreamProvider = new UploadMultipartFormProvider(outputDirectory.FullName);
 			await Request.Content.ReadAsMultipartAsync(multiPartFormDataStreamProvider);
 
@@ -232,12 +241,12 @@ namespace VCT.Server
 				{
 					test = ctx.Tests.Add(new Test
 					{
-						Name = testName , 
+						Name = testName,
 						ProjectId = project.Id
 					});
 					ctx.SaveChanges();
 					//if there were not such test let's create and corresponding running test in suite collection
-					
+
 				}
 
 				runningTest = suite.Tests.FirstOrDefault(t => t.TestId == test.Id && t.EnvironmentId == environment.Id);
@@ -252,7 +261,7 @@ namespace VCT.Server
 					});
 					ctx.SaveChanges();
 				}
-				
+
 
 				foreach (FileInfo testingFile in files)
 				{
@@ -282,14 +291,18 @@ namespace VCT.Server
 					{
 						//now check diff file
 						var diffDirectory = new DirectoryInfo(@"C:\projects\Visual.Comparing.Tool\VCT.Server\Output");
-						if(diffDirectory.Exists) diffDirectory.ClearContent();
+						if (diffDirectory.Exists) diffDirectory.ClearContent();
 
 						var diffFile = new FileInfo(Path.Combine(
 							diffDirectory.FullName,
 							testingFile.Name));
 
 						//first compare
-						var diff = ImageFileComparer.GenerateDiffFile(Utils.Base64ToImage(stableFile.File), Image.FromFile(testingFile.FullName), diffFile);
+						Image diff;
+						using (var img = Image.FromFile(testingFile.FullName))
+						{
+							diff = ImageFileComparer.GenerateDiffFile(Utils.Base64ToImage(stableFile.File), img, diffFile);
+						}
 
 						//add diff to test result
 						runningTest.TestResults.Where(tr => tr.Name == testingFile.Name).FirstOrDefault().DiffFile =
@@ -300,6 +313,7 @@ namespace VCT.Server
 					}
 				}
 			}
+
 			return Ok(new { Message = string.Format("All files have been uploaded successfully to {0} directory", outputDirectory.FullName) });
 		}
 
@@ -361,20 +375,20 @@ namespace VCT.Server
 					//find project if any. If not, create
 					var project = ctx.Projects.FirstOrDefault(p => p.Name == projectName);
 					var browser = ctx.Browsers.First(b => b.Name == "chrome");
-					var resolution = ctx.Resolutions.Add(new Resolution {Height = 1024, Width = 1000});
+					var resolution = ctx.Resolutions.Add(new Resolution { Height = 1024, Width = 1000 });
 					ctx.SaveChanges();
 					var environment =
-						ctx.Environments.Add(new Entities.Environment {BrowserId = browser.Id, ResolutionId = resolution.Id});
+						ctx.Environments.Add(new Entities.Environment { BrowserId = browser.Id, ResolutionId = resolution.Id });
 
 					if (project == null)
 					{
-						project = ctx.Projects.Add(new Entities.Project {Name = projectName});
+						project = ctx.Projects.Add(new Entities.Project { Name = projectName });
 						ctx.SaveChanges();
 					}
 					//create list of tests
 					foreach (DirectoryInfo stableFileDirectory in Storage.Project(projectName).StableFiles.GetDirectories())
 					{
-						var test = ctx.Tests.Add(new Test {Name = stableFileDirectory.Name, ProjectId = project.Id});
+						var test = ctx.Tests.Add(new Test { Name = stableFileDirectory.Name, ProjectId = project.Id });
 						ctx.SaveChanges();
 						foreach (FileInfo imageFile in stableFileDirectory.GetImageFiles())
 						{
@@ -430,21 +444,6 @@ namespace VCT.Server
 						}
 					}
 				}
-//			try
-//			{
-//				//get suites and sort them in asc order
-//				var suites = Storage.Project(projectName).Suites.OrderBy(s => s.DateStarted);
-//
-//				foreach (Storage.StorageProject.ProjectSuite suite in suites)
-//				{
-//					var tests = suite.StableFilesDirectory.GetDirectories("*", SearchOption.TopDirectoryOnly);
-//					foreach (DirectoryInfo test in tests)
-//					{
-//						var copyToDir = new DirectoryInfo(Path.Combine(Storage.Project(projectName).StableFiles.FullName, test.Name));
-//						test.CopyTo(copyToDir);
-//					}
-//				}
-//			}
 			}
 			catch (Exception e)
 			{
@@ -468,10 +467,10 @@ namespace VCT.Server
 		[Route("{projectName}/{suiteName}/delete")]
 		public HttpResponseMessage DeleteSuite(string projectName, string suiteName)
 		{
-//			using (var ctx = new StorageContext())
-//			{
-//				var project = ctx.Projects.FirstOrDefault(p => p.Name == projectName);
-//			}
+			//			using (var ctx = new StorageContext())
+			//			{
+			//				var project = ctx.Projects.FirstOrDefault(p => p.Name == projectName);
+			//			}
 			Storage.Project(projectName).Suite(suiteName).Delete();
 			return new HttpResponseMessage
 			{
@@ -552,7 +551,7 @@ namespace VCT.Server
 				var suite = ctx.Suites.FirstOrDefault(s => s.ProjectId == project.Id && s.Name == suiteId);
 				var failedTests = ctx.RunningTests.Where(t => t.SuiteId == suite.Id && !t.Passed).ToList();
 
-				
+
 				foreach (RunningTest failedTest in failedTests)
 				{
 					var artifactsCollection = new List<Tuple>();
@@ -598,7 +597,7 @@ namespace VCT.Server
 						{
 							Browser = browser.Name,
 							WindowSize = string.Format("{0} x {1}", resolution.Width, resolution.Height),
-							Id = (int) environment.Id
+							Id = (int)environment.Id
 						}
 					});
 				}

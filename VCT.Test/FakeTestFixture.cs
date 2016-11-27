@@ -1,74 +1,135 @@
-﻿using System.IO;
+﻿using System;
 using NUnit.Framework;
 using OpenQA.Selenium.Chrome;
+using OpenQA.Selenium.Firefox;
 using OpenQA.Selenium.Remote;
 using VCT.Client;
-using VCT.Test.Framework;
 
 namespace VCT.Test
 {
-	[TestFixture]
-	public class FakeTestFixture
+//	[TestFixture]
+//	public class FakeTestFixture
+//	{
+//		private RemoteWebDriver driver;
+//
+//		[SetUp]
+//		public void SetUp()
+//		{
+//			driver = new ChromeDriver();
+//		}
+//
+//		[TearDown]
+//		public void TearDown()
+//		{
+//			driver.Quit();
+//		}
+//
+//		[Test]
+//		public void GoogleTest()
+//		{
+//
+//			driver.Manage().Window.Maximize();
+//			driver.Navigate().GoToUrl("file:///C:/projects/Visual.Comparing.Tool/index.html");
+//
+//			var comparer = new VisualComparer("TestProject", TestContext.CurrentContext.Test.FullName, driver);
+//			var equal = comparer.VerifyPage("Page1");
+//
+//			driver.Navigate().GoToUrl("http://www.google.com");
+//			var equal2 = comparer.VerifyPage("Page2");
+//
+//			Assert.IsTrue(equal);
+//			Assert.IsTrue(equal2);
+//		}
+//
+//		[Test]
+//		public void GoogleTest2()
+//		{
+//
+//			driver.Manage().Window.Maximize();
+//			driver.Navigate().GoToUrl("file:///C:/projects/Visual.Comparing.Tool/index.html");
+//
+//			var comparer = new VisualComparer("TestProject", TestContext.CurrentContext.Test.FullName, driver);
+//			var equal = comparer.VerifyPage("Page1");
+//
+////			driver.Navigate().GoToUrl("file:///C:/projects/Visual.Comparing.Tool/index2.html");
+////			var equal2 = comparer.VerifyPage("Page2");
+//
+//			Assert.IsTrue(equal);
+////			Assert.IsTrue(equal2);
+//		}
+//	}
+
+	[TestFixture(typeof(ChromeDriver))]
+	[TestFixture(typeof(FirefoxDriver))]
+	public class FakeTestFixture : Base
 	{
-		private RemoteWebDriver driver;
-
-		[TestFixtureSetUp]
-		public void TestFixtureSetUp()
+		public FakeTestFixture(Type driverType)
+			: base(driverType)
 		{
-//			DirectoryInfo dump = new DirectoryInfo(@"C:\projects\Visual.Comparing.Tool\Output");
-//			if (!dump.Exists) dump.Create();
-//			foreach (FileInfo file in dump.GetFiles())
-//			{
-//				file.Delete();
-//			}
-//			foreach (DirectoryInfo dir in dump.GetDirectories())
-//			{
-//				dir.Delete(true);
-//			}
-		}
-
-
-		[SetUp]
-		public void SetUp()
-		{
-			driver = new ChromeDriver();
 		}
 
 		[TearDown]
 		public void TearDown()
 		{
-			driver.Quit();
+			Driver.Quit();
 		}
 
 		[Test]
 		public void GoogleTest()
 		{
 
-			//Client.Shell.ServerAddress = @"http://10.98.4.67:80";
+			Driver.Manage().Window.Maximize();
+			Driver.Navigate().GoToUrl("file:///C:/projects/Visual.Comparing.Tool/index2.html");
 
-			var outputScreen = NewFile(@"C:\projects\VCT\Output\Google\google.png");
-
-			driver.Manage().Window.Maximize();
-//			driver.Navigate().GoToUrl("http://www.google.com");
-			driver.Navigate().GoToUrl("file:///C:/projects/Visual.Comparing.Tool/index.html");
-//			driver.Navigate().GoToUrl("chrome://version/");
-//			var equal = SampleTestCore.IsPageScreensAreEqual(driver, outputScreen, TestContext.CurrentContext.Test.FullName);
-
-			var comparer = new VisualComparer("TestProject", TestContext.CurrentContext.Test.FullName, driver);
+			var comparer = new VisualComparer("TestProject", "SAMPLE TEST1", Driver);
 			var equal = comparer.VerifyPage("Page1");
 
-			driver.Navigate().GoToUrl("file:///C:/projects/Visual.Comparing.Tool/index2.html");
-			var equal2 = comparer.VerifyPage("Page2");
+//			driver.Navigate().GoToUrl("http://www.google.com");
+//			var equal2 = comparer.VerifyPage("Page2");
 
 			Assert.IsTrue(equal);
 //			Assert.IsTrue(equal2);
 		}
 
-		private FileInfo NewFile(string path)
+		[Test]
+		public void GoogleTest2()
 		{
-			var result = new FileInfo(path);
-			if (! result.Directory.Exists) result.Directory.Create();
-			return result;
+
+			Driver.Manage().Window.Maximize();
+			Driver.Navigate().GoToUrl("file:///C:/projects/Visual.Comparing.Tool/index.html");
+
+			var comparer = new VisualComparer("TestProject", TestContext.CurrentContext.Test.FullName, Driver);
+			var equal = comparer.VerifyPage("Page1");
+
+			//			driver.Navigate().GoToUrl("file:///C:/projects/Visual.Comparing.Tool/index2.html");
+			//			var equal2 = comparer.VerifyPage("Page2");
+
+			Assert.IsTrue(equal);
+			//			Assert.IsTrue(equal2);
+		}
+	}
+
+	[TestFixture]
+	public class Base
+	{
+		public RemoteWebDriver Driver;
+
+		public Base(Type type)
+		{
+			Initialize(type);
+		}
+
+		private void Initialize(Type driverType)
+		{
+			if (driverType == typeof(ChromeDriver))
+			{
+				var options = new ChromeOptions();
+				options.AddArguments("test-type", "--disable-popup-blocking", "--disable-extensions");
+				Driver = (RemoteWebDriver)Activator.CreateInstance(driverType, options);
+				return;
+			}
+			//TODO add settings for other drivers if necessary
+			Driver = (RemoteWebDriver)Activator.CreateInstance(driverType);
 		}
 	}
 }

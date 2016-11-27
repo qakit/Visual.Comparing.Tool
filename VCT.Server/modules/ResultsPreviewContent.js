@@ -285,7 +285,7 @@ export default React.createClass({
                 <div className="flexChild rowParent">
                     <TestResultContainer left={stableImagePath} right={testingImagePath} scrollEvent={this.handleScroll}/>                
                     <div className={`strange-panel ${this.state.testsTreeViewState} `}>
-                        {testData.map((data, i) => <a key={data.TestName} href="#" onClick={this.handleTestItemClick} id={parseInt(i)} className={`${testItemSelectedClass(i)}`}>
+                        {testData.map((data, i) => <a key={`${data.TestName} - ${data.Environment.Browser}|${data.Environment.WindowSize}`} href="#" onClick={this.handleTestItemClick} id={parseInt(i)} className={`${testItemSelectedClass(i)}`}>
                             <span>{(i+1)}</span>{data.TestName}</a>)}
                     </div>                    
                 </div>

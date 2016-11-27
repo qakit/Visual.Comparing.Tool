@@ -40,8 +40,10 @@ namespace VCT.Sdk
 
 		public static string ImageToBase64(FileInfo imageFile)
 		{
-			var img = Image.FromFile(imageFile.FullName);
-			return ImageToBase64(img, ImageFormat.Png);
+			using (var img = Image.FromFile(imageFile.FullName))
+			{
+				return ImageToBase64(img, ImageFormat.Png);
+			}
 		}
 
 		public static string ImageToBase64(Image image, ImageFormat format)
