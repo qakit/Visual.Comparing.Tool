@@ -267,6 +267,23 @@ export default React.createClass({
             return testIndex === i && 'selected' || '';
         }
 
+        var browserImage = "";
+        switch(browser){
+            case "chrome":
+                browserImage = "chrome.png";
+                break;
+            case "firefox":
+                browserImage = "firefox.png";
+                break;
+            case "ie":
+                browserImage = "ie.png";
+                break;
+            default:
+                browserImage = "chrome.png";
+                break;            
+        }
+        var browserTypeIconPath = `${window.location.origin}//images//${browserImage}`;
+
         return (
             <div className="flexChild columnParent preview"> 
                 <nav className="navbar navbar-default">
@@ -274,7 +291,7 @@ export default React.createClass({
                         <div className="navbar navbar-default history" id="bs-example-navbar-collapse-1">
                             <ul className="nav navbar-nav">
                                 <li><a href="#" id="back" onClick={this.handleChildClick}><i id="back" className="fa fa-arrow-left"></i></a></li>
-                                <li><p className="navbar-text">{`${testName} - ${imageName} [Browser: ${browser}; WindowSize: ${windowSize}]`}</p></li>
+                                <li><p className="navbar-text">{testName}</p></li>
                             </ul>
                             <ul id="toggleList" className="nav navbar-nav navbar-right">
                                 <li><a href="#" id="toggleList" onClick={this.handleChildClick}><i id="toggleList" className="fa fa-list"></i></a></li>
@@ -290,6 +307,13 @@ export default React.createClass({
                     </div>                    
                 </div>
                 <div className="control-panel">
+                    <span className="info">
+                        <span title={imageName}>{imageName}</span>
+                        <span>
+                            <span><i className="browserType" style={{backgroundImage: `url(${browserTypeIconPath})`}}></i></span>
+                            <span>{windowSize}</span>
+                        </span>
+                    </span>
                     <a href="#" id="previousTest" onClick={this.handleChildClick}><i id="previousTest" className="fa fa-step-backward"></i></a>
                     <a href="#" id="previousFail" onClick={this.handleChildClick}><i id="previousFail" className="fa fa-backward"></i></a>
                     <span>{`${imageIndex + 1} / ${maxImages}`}</span>

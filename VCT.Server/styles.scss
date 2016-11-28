@@ -232,10 +232,10 @@ body {
 
         display: block;
         position: absolute;
-        top: calc(100% - #{$button-size * 2});
+        top: calc(100% - #{$button-size * 3});
         right: calc(50% - #{($button-size * 7 + $button-size * 2 + $button-size) / 2});
         width: $button-size * 7 + $button-size * 2 + $button-size;
-        height: $button-size;
+        height: $button-size * 2;
 
         background-color: white;
 
@@ -253,6 +253,64 @@ body {
             text-align: center;
 
         color: #444;
+        }
+
+        > span.info {
+            display: block;
+            float: none;
+            clear: both;
+
+            width: 100%;
+
+            background-color: #F2F2F2;
+
+            position: relative;
+
+            > span:first-of-type {
+                position: absolute;
+                display: block;
+                top: 0;
+                left: 0;
+                height: $button-size;
+                width: calc(100% - 100px);
+                text-align: left;
+                font-size: 12px;
+                text-overflow: ellipsis;
+                overflow: hidden;
+                padding-left: 10px;
+            }
+
+            > span:last-of-type {
+                position: absolute;
+                display: block;
+                top: 0;
+                right: 0;
+                height: $button-size;
+                width: 100px;
+                text-align: right;
+                font-size: 12px;
+                padding-right: 10px;
+
+                > span {
+                    display: block;
+                    height: $button-size / 2;
+                    line-height: $button-size / 2;
+
+                    > i.browserType{
+                        display: block;
+                        height: $button-size / 2;
+                        background-size: contain;
+                        background-repeat: no-repeat;
+                        background-position-x: right;
+                    }
+                }
+
+                > span:last-of-type {
+                    margin-top: -3px;
+                    font-style: italic;
+                    opacity: .7;
+                }
+            }
         }
 
         > div {
